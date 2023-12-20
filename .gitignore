@@ -1,0 +1,10 @@
+# Ignore data folders
+out/
+out_old/
+wmap_lcdm_wmap9_chains_v5/
+.vscode/
+*/__pycache__/
+__pycache__/
+*.fits
+*.tar.gz
+cmb_spectrum.txt
