@@ -2,7 +2,6 @@ import healpy as hp
 from astropy.io import fits
 import matplotlib.pyplot as plt
 from pathlib import Path
-# from planck_instrument import map_files
 
 
 def print_out_header(fits_fn):
@@ -24,12 +23,9 @@ def get_num_fields(fits_fn):
         for i, hdu in enumerate(hdul):
             if i == 0:
                 continue
-            # print(f"Header for HDU {i}:")
             for card in hdu.header.cards:
                 if card.keyword == "TFIELDS":
                     n_fields[i] = card.value
-                # print(f"{card.keyword}: {card.value}")
-            # print("\n" + "-"*50 + "\n")
     return n_fields
 
 
@@ -47,9 +43,6 @@ def get_fits_information(fits_fn):
 
         maps_info[hdu_n] = {}
     with fits.open(fits_fn) as hdul:
-        # header = hdul[1].header
-        # hdr_dict = dict(header)
-
         # Loop over all HDUs in the FITS file
         for hdu_n, hdu in enumerate(hdul):
             if hdu_n == 0:
@@ -78,9 +71,7 @@ def pretty_print_dict(this_dict):
 
 def show_all_maps(fits_fn):
     n_fields_per_hdu = get_num_fields(fits_fn)
-    map_info = get_fits_information(fits_fn)
     for hdu_n, n_fields in n_fields_per_hdu.items():
-        # nested = map_info[hdu_n]["ORDERING"]  # nested is incorrect for the noise maps (maybe not others?)
         for field in range(n_fields):
             print(hdu_n, field)
             this_map = hp.read_map(fits_fn, hdu=hdu_n, field=field)
@@ -95,30 +86,13 @@ def show_one_map(fits_fn, hdu_n, field_n):
   
 
 def main():
-    # noise_map_fn = "fidu_noise/ffp10_noise_030_full_map_mc_00000.fits"
-    # petroff_used_fn = "ref_maps/HFI_SkyMap_100_2048_R3.01_full.fits"
     maybe_ok_fn = "planck_assets/LFI_SkyMap_070-BPassCorrected_1024_R3.00_full.fits"
-    # maybe_ok_fn = "planck_assets/LFI_SkyMap_070-BPassCorrected_1024_R3.00_full.fits"
-    # maybe_ok_fn = "planck_assets/HFI_SkyMap_100_2048_R3.01_full.fits"
-    # maybe_ok_fn = "planck_assets/HFI_SkyMap_100-field-IQU_2048_R3.00_full.fits"
-
     if Path(maybe_ok_fn).exists():
         print("Exists!")
     else:
         print("No exists!")
 
-    # for fn in map_files.values():
-    #     print_out_header(fn)
-
-    # show_one_map(petroff_used_fn, 1, 6)
-    # print_out_header(noise_map_fn)
-    # print_out_header(petroff_used_fn)
-    # print(get_num_fields(noise_map_fn))
-    # show_all_maps(noise_map_fn)
-
-    # pretty_print_dict(get_fits_information(petroff_used_fn))
     pretty_print_dict(get_fits_information(maybe_ok_fn))
-
     show_all_maps(maybe_ok_fn)
 
 
