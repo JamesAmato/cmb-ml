@@ -1,10 +1,3 @@
-# Ignore data folders, but keep file structure
-Data/Assets/Planck/*.fits
-Data/Assets/WMAP/*/*
-Data/Cache/*
-Data/Datasets/*
-creation_logs/*
-
 # Ignore potentially large files
 *.fits
 *.tar.gz
@@ -15,3 +8,16 @@ creation_logs/*
 __pycache__/
 .DS_Store
 */.DS_Store
+
+# Ignore data folders, but keep file structure with placeholders
+Data/Assets/Planck/*.fits
+!Data/Assets/Planck/README.md
+Data/Assets/WMAP/*/*
+!Data/Assets/WMAP/*/README.md
+!Data/Assets/WMAP/*/description.txt
+Data/Cache/*
+!Data/Cache/README.md
+Data/Datasets/*
+!Data/Datasets/README.md
+creation_logs/*
+!creation_logs/README.md

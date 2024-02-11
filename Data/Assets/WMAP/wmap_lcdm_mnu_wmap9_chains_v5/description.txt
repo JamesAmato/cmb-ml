@@ -1,0 +1,25 @@
+The files in this directory are created by concatenating 6 independent chains.
+For each chain, we ignore the first 100 points, and include the rest.
+The first point is identical for each of the chains, and the next 99
+points are also deleted, before concatenation.
+When the job was stopped abruptly, we sometimes discard points
+at the end of the chain too, if not all files were fully flushed to disk.
+
+From chain1:
+  We use a total of 100386 points, after removing the first 100.
+  These are going into lines 1 through 100386 of the concatenated chain files.
+From chain2:
+  We use a total of 100714 points, after removing the first 100.
+  These are going into lines 100387 through 201100 of the concatenated chain files.
+From chain3:
+  We use a total of 100513 points, after removing the first 100.
+  These are going into lines 201101 through 301613 of the concatenated chain files.
+From chain4:
+  We use a total of 101017 points, after removing the first 100.
+  These are going into lines 301614 through 402630 of the concatenated chain files.
+From chain5:
+  We use a total of 101057 points, after removing the first 100.
+  These are going into lines 402631 through 503687 of the concatenated chain files.
+From chain6:
+  We use a total of 100249 points, after removing the first 100.
+  These are going into lines 503688 through 603936 of the concatenated chain files.
