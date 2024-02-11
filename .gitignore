@@ -1,9 +1,9 @@
-# Ignore data folders
+# Ignore data folders, but keep file structure
 Data/Assets/Planck/*.fits
-Data/Assets/WMAP
-Data/Cache
-Data/Datasets
-creation_logs/
+Data/Assets/WMAP/*/*
+Data/Cache/*
+Data/Datasets/*
+creation_logs/*
 
 # Ignore potentially large files
 *.fits
