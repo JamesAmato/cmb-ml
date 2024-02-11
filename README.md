@@ -4,7 +4,11 @@ For Physics questions, test cases, and answers. I've removed much of the README;
 
 # Physics Questions
 
+Top priority:
+- [ ] What lmax should be used for the derived power spectrum?
+- [ ] How much difference is there between lmax at 2x and 2.5x when deriving ps?
 
+Cosmo Params
 - [x] WMAP chain parameters are pulled by grabbing values at the same row from multiple files. Should each parameter get its own index instead? Alternatively, should some parameters come from index i and others i+1?
   - It is correct as it stands; pull one index to account for the row
 
@@ -15,7 +19,7 @@ CAMB
 - [ ] Is CAMB deterministic?
   - Believed to be yes; not sure if confirmation is needed.
 - [ ] Should CAMB be run with an Lmax=8150?
-- [x] **Is CAMB being used correctly to generate CMB power spectra**? I believe that currently it is running with several defaults; I do not know if those defaults are reasonable.
+- [x] Is CAMB being used correctly to generate CMB power spectra? I believe that currently it is running with several defaults; I do not know if those defaults are reasonable.
   - Yes. Probably. I don't know if Physics has looked at it; but Jim followed instructions.
 - [ ] Is the CAMB power spectrum file truly the fiducial power spectrum toward which we should train the model?
 
@@ -38,13 +42,13 @@ Sky
 Beam Smoothing
 - [ ] Is beam smoothing (smoothing_and_coordinate_transform) correctly applied? 
 - [ ] Is the nside for that correct?
-- [ ] Is the lmax for that correct?
+- [ ] **Is the lmax for that correct?**
   - I've seen [the ANAFAST documentation](https://healpix.sourceforge.io/html/fac_anafast.htm) and find it somewhat confusing. I currently use 2*lmax.
   - There may be ringing in the images around the bright spot in the middle. More occurs when I use nside_sky=nside_out, but still some nevertheless.
 - [ ] Is this method sufficient, or should RIMO's be used?
 
 Noise
-- [ ] **Is noise correctly determined**? There is a process of scaling down the resolution of some variance signal, then finding the square root of that to serve as standard deviation for Gaussian draws.
+- [?] Is noise correctly determined? There is a process of scaling down the resolution of some variance signal, then finding the square root of that to serve as standard deviation for Gaussian draws.
   - I think this has been fixed using the power parameter for ud_grade() when creating the noise cache
 - [ ] Why is noise for polarization so large? It seems to drown out other signals.
   - This is currently improved, but may need more work?
