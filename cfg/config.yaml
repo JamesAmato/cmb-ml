@@ -2,14 +2,14 @@ defaults:
   - local_system: ${oc.env:CMB_SIMS_LOCAL_SYSTEM}
   - file_system : common_fs
   - simulation  : base_sim
-  - splits      : two_two
+  - splits      : all
   - override hydra/job_logging: custom_log_with_extra_seed
   - _self_
 
 create_dirs: false
 force_new_noise_cache: true
-dataset_name: T_128_2_2
-seed_base_string: 'T-128'
+dataset_name: T_4_2250
+seed_base_string: 'T-2250'
 hydra:
   run:
     dir: creation_logs/${now:%Y-%m-%d-%H-%M-%S}

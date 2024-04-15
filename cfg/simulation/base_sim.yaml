@@ -1,8 +1,8 @@
 defaults:
   - cmb:   wmap9_mnu
   - noise: base_noise
-nside_sky        : 256
-nside_out        : 128
+nside_sky        : 8
+nside_out        : 4
 # preset_strings   : ["f1"]
 preset_strings   : ["d9", "s4", "f1", "a1", "co1", "ksz1", "tsz1"]
 # preset_strings   : ["d9", "s4", "f1", "a1", "co1", "cib1", "ksz1", "tsz1", "rg1"]  # Issues with getting cib and rg assets for websky (404 Error)
