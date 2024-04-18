@@ -18,7 +18,8 @@ from utils.fits_inspection import get_num_fields
 
 
 logger = logging.getLogger(__name__)
-
+logging.getLogger('matplotlib').setLevel(logging.INFO)
+logging.getLogger('PIL').setLevel(logging.INFO)
 
 @dataclass
 class VizFilesCfg:
