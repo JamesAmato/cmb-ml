@@ -55,6 +55,7 @@ def make_all_simulations(cfg):
     field_strings = list(cfg.simulation.fields)
     lmax_pysm3_smoothing = int(cfg.simulation.cmb.derived_ps_nsmax_x * nside_out)
     lmax_derived_ps = int(cfg.simulation.cmb.derived_ps_nsmax_x * nside_out)
+    output_unit = cfg.simulation.output_unit
 
     planck: Instrument = make_planck_instrument(cfg)
 
@@ -74,7 +75,7 @@ def make_all_simulations(cfg):
     sky = pysm3.Sky(nside=nside_sky, 
                     component_objects=[placeholder],
                     preset_strings=preset_strings, 
-                    output_unit="uK_RJ")
+                    output_unit=output_unit)
     logger.debug("Done creating sky.")
 
     logger.debug("Creating datasets")

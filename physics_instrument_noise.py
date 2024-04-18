@@ -39,7 +39,7 @@ def make_random_noise_map(sd_map, random_seed, center_frequency):
     rng = np.random.default_rng(random_seed)
     noise_map = rng.normal(scale=sd_map, size=sd_map.size)
     noise_map = u.Quantity(noise_map, u.K_CMB, copy=False)
-    noise_map = noise_map.to(u.uK_RJ, equivalencies=u.cmb_equivalencies(center_frequency))
+    # noise_map = noise_map.to(u.uK_RJ, equivalencies=u.cmb_equivalencies(center_frequency))
     logger.debug(f"physics_instrument_noise.make_random_noise_map end")
     return noise_map
 
