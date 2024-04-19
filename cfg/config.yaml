@@ -8,7 +8,7 @@ defaults:
 
 create_dirs: false
 force_new_noise_cache: true
-dataset_name: Dummy128_K_CMB
+dataset_name: Dummy_4_
 seed_base_string: 'Dummy'
 hydra:
   run:

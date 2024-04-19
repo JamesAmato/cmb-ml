@@ -24,7 +24,7 @@ class Detector:
 
 def make_planck_instrument(conf):
     planck_instr_fs = InstrumentFilesNamer(conf)
-    freqs: List(int) = conf.simulation.detector_freqs
+    freqs: List[int] = conf.simulation.detector_freqs
 
     table = planck_instr_fs.read_instr_table()
 
