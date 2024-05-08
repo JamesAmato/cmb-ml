@@ -24,6 +24,9 @@ from maker_of_global_logs import LogMaker
 
 logger = logging.getLogger(__name__)
 
+# Returns true if the two lists overlap
+def check_overlap(components, strings):
+    return not set(components).isdisjoint(strings)
 
 @hydra.main(version_base=None, config_path="cfg", config_name="config")
 def make_all_simulations(cfg):
@@ -79,6 +82,9 @@ def make_all_simulations(cfg):
     for comp_str in comp_strings:
         logger.debug(f"Instantiating {comp_str}")
         inst_comps.append(instantiate(cfg.simulations.components[comp_str]))
+
+    # Check for overlap
+    # check_overlap(inst_comps, preset_strings)
 
     # Instantiate sky object
     logger.debug("Instantiating sky object")

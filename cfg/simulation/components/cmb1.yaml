@@ -1,4 +1,4 @@
-cmb1:
+cmb:
   _target_: pysm3.CMBLensed # do I still want to use this?
   cmb_spectra: cmb_spectrum.txt # something else?
   nside: ${nside_sky} # is this the right one?

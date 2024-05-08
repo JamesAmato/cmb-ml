@@ -1,7 +1,7 @@
 defaults:
   - sky
   - components:
-    - cmb1
+    - cmb
   # - cmb:   wmap9_mnu
   # - noise: base_noise
 nside_sky        : 2048
