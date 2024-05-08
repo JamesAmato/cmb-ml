@@ -4,6 +4,8 @@ import logging
 import pysm3
 
 import hydra
+from hydra.utils import instantiate
+
 from component_cmb import (CMBFactory, 
                            make_cmb_maker, 
                            save_der_cmb_ps, 
@@ -67,15 +69,32 @@ def make_all_simulations(cfg):
 
     logger.debug("Done with source configuration files")
 
-    placeholder = pysm3.Model(nside=nside_sky,
-                              max_nside=nside_sky)
+    # NEW STUFF STARTS
 
-    logger.debug("Creating sky.")
-    sky = pysm3.Sky(nside=nside_sky, 
-                    component_objects=[placeholder],
-                    preset_strings=preset_strings, 
-                    output_unit="uK_RJ")
-    logger.debug("Done creating sky.")
+    # Get a list of the names of each component
+    comp_strings = list(dict(cfg.simulation.components).keys())
+
+    # Instantiate each component
+    inst_comps = []
+    for comp_str in comp_strings:
+        logger.debug(f"Instantiating {comp_str}")
+        inst_comps.append(instantiate(cfg.simulations.components[comp_str]))
+
+    # Instantiate sky object
+    logger.debug("Instantiating sky object")
+    sky = instantiate(cfg.sky, component_objects = inst_comps)
+
+    # NEW STUFF ENDS
+
+    # placeholder = pysm3.Model(nside=nside_sky,
+    #                           max_nside=nside_sky)
+
+    # logger.debug("Creating sky.")
+    # sky = pysm3.Sky(nside=nside_sky, 
+    #                 component_objects=[placeholder],
+    #                 preset_strings=preset_strings, 
+    #                 output_unit="uK_RJ")
+    # logger.debug("Done creating sky.")
 
     logger.debug("Creating datasets")
     for split in dataset_files.iter_splits():

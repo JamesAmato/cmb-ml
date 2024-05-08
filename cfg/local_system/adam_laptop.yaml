@@ -1,0 +1,7 @@
+test_key         : "adam_laptop"
+datasets_root    : "/mnt/c/Users/adam/cmb_project/datasets_root"
+#instr_table_path : "./planck_assets/planck_deltabandpass.tbl"
+instr_table_path : "./Data/Assets/Planck/planck_deltabandpass.tbl"
+noise_src_dir    : "./planck_assets/"
+wmap_chains_dir  : "./wmap_assets/"
+noise_cache_dir  : "./local_files/noise/"

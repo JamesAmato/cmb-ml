@@ -1,6 +1,9 @@
 defaults:
-  - cmb:   wmap9_mnu
-  - noise: base_noise
+  - sky
+  - components:
+    - cmb1
+  # - cmb:   wmap9_mnu
+  # - noise: base_noise
 nside_sky        : 2048
 nside_out        : 128
 # preset_strings   : ["f1"]
