@@ -1,8 +1,8 @@
 defaults:
   - local_system: ${oc.env:CMB_SIMS_LOCAL_SYSTEM}
   - file_system : common_fs
-  - simulation  : sim_32
-  - scenario    : scenario_32
+  - simulation  : sim
+  - scenario    : scenario
   - splits      : three_three
   - pipeline    : sample_pipe
   - override hydra/job_logging: custom_log
@@ -16,3 +16,9 @@ hydra:
   sweep:
     dir: Logs_multirun/${now:%Y-%m-%d-%H-%M-%S}
   verbose: true
+
+nside_sky: 64
+nside: 32
+# These two could probably be overrides since they're only different for one
+map_fields: "I"
+detector_freqs: [30, 100, 857]

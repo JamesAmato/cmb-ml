@@ -13,3 +13,8 @@ Data/
 __pycache__/
 .DS_Store
 */.DS_Store
+
+# Adam
+.ipynb_checkpoints/
+out/
+outputs/
