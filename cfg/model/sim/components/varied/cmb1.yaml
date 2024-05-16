@@ -1,0 +1,5 @@
+cmb1:
+  _target_: pysm3.CMBLensed
+  cmb_spectra: cmb_spectra/cmb1_spectrum.txt
+  nside: 2048 #${nside}
+  cmb_seed: 0

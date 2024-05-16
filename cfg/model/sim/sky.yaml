@@ -1,0 +1,6 @@
+sky:
+  _target_: pysm3.Sky
+  nside: 2048 #${nside}
+  component_objects: []
+  preset_strings: []
+  output_unit: uK_RJ

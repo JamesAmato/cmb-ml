@@ -1,0 +1,8 @@
+f1:
+  _target_: pysm3.PowerLaw
+  map_I: fits/free-free/f1.fits
+  unit_I: uK_RJ
+  map_pl_index: -2.14
+  freq_ref_I: 30 GHz
+  has_polarization: false
+  nside: 2048 #${nside}

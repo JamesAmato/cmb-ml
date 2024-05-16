@@ -12,8 +12,8 @@
 USE_SEPARATE_DATA_DIR=true
 
 # Define local variables for directories
-DATA_DIR="/Users/jimcamato/Data/SPACE"
-REPO_DIR="/Users/jimcamato/Developer/ml_cmb_pysm_sims/planck_assets"
+DATA_DIR="/home/adam/cmb_project/Assets/Planck"
+REPO_DIR="/home/adam/cmb_project/ml_cmb_pysm_sims/planck_assets"
 
 # Check if the necessary directories exist, exit if they don't
 if $USE_SEPARATE_DATA_DIR && [ ! -d "$DATA_DIR" ]; then
