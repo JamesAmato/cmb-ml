@@ -1,8 +1,10 @@
 f1:
   _target_: pysm3.PowerLaw
-  map_I: /home/adam/cmb_project/Assets/ComponentMaps/f1.fits
+  # map_I: pysm_2/ff_t_new.fits
+  # map_I: /home/adam/cmb_project/Assets/ComponentMaps/f1.fits
+  map_I: /home/jim/temp/ff_t_new.fits
   unit_I: uK_RJ
   map_pl_index: -2.14
   freq_ref_I: 30 GHz
   has_polarization: false
-  nside: 2048 #${nside}
+  nside: ${model.sim.nside_sky} #${nside}

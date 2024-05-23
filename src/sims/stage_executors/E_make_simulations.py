@@ -79,6 +79,8 @@ class SimCreatorExecutor(BaseStageExecutor):
         # Start of Adam's stuff
         ##############################
 
+
+
         # self.varied_comp_strs = list(dict(cfg.model.sim.components.varied).keys())
         self.fixed_comp_strs = list(dict(cfg.model.sim.components).keys())
 
@@ -87,6 +89,16 @@ class SimCreatorExecutor(BaseStageExecutor):
         logger.debug('Instantiating fixed PySM3 component objects')
         for comp in self.fixed_comp_strs:
             self.inst_comps.append(hydra.utils.instantiate(cfg.model.sim.components[comp]))
+
+            # param_dict = dict(cfg.model.sim.components[comp])
+            # param_dict.pop("_target_")
+            # cmp = pysm3.ModifiedBlackBody(**param_dict)
+            # self.inst_comps.append(cmp)
+
+            a = 1
+
+        # logger.debug('got components: {aasdbfhasdkjbhf}')
+
         logger.debug('Done instantiating fixed PySM3 component objects')
 
         self.preset_strings = list(cfg.model.sim.preset_strings)
@@ -165,7 +177,7 @@ class SimCreatorExecutor(BaseStageExecutor):
         logger.debug('Done creating PySM3 Sky object')
 
         # logger.debug(f"Executing SimCreatorExecutor execute()")
-        # self.default_execute()
+        self.default_execute()
 
     def process_split(self, split: Split) -> None:
         for sim in split.iter_sims():
