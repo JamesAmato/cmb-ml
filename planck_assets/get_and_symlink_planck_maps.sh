@@ -31,8 +31,8 @@ BASE_URL="https://irsa.ipac.caltech.edu/data/Planck/release_3/all-sky-maps/maps"
 
 # File names
 FILES=(
-    "LFI_SkyMap_030-BPassCorrected_1024_R3.00_full.fits"
-    "LFI_SkyMap_044-BPassCorrected_1024_R3.00_full.fits"
+    # "LFI_SkyMap_030-BPassCorrected_1024_R3.00_full.fits"
+    # "LFI_SkyMap_044-BPassCorrected_1024_R3.00_full.fits"
     "LFI_SkyMap_070-BPassCorrected_1024_R3.00_full.fits"
     "HFI_SkyMap_100_2048_R3.01_full.fits"
     "HFI_SkyMap_143_2048_R3.01_full.fits"

@@ -2,22 +2,25 @@ defaults:
   - cmb:   wmap9_mnu
   - noise: base_noise
   - components:
-    - varied:
-      - cmb_dummy
-      - cmb1
-    - fixed:
-      - d9
-      - f1
-      - s4
+    - d9
+    - f1
+    - s4
+    # - varied:
+    #   - cmb_dummy
+    #   - cmb1
+    # - fixed:
+      # - d9
+      # - f1
+      # - s4
 # PySM needs to run internal calculations at a resolution greater than the output nside (output nside set in experiment.yaml)
 
 # PySM3 recommends either nside_sky=2048 for output_nside <= 1024; otherwise double it
 #    While debugging code, it is often convenient to use lower resolution nside_sky
 #    Only one of the two should be set. The other should be "null". Setting both may given unexpected results.
-nside_sky          : null # changes
-nside_sky_factor   : 2 # changes
+nside_sky          : 2048 # changes
+nside_sky_factor   : null # changes
 
-preset_strings     : ["f1"] # changes
+preset_strings     : [] # changes
 component_objects:
   - cmb
   - noise

@@ -13,7 +13,7 @@ import camb
 
 import logging
 
-from..cmb_factory import CMBFactory
+from ..cmb_factory import CMBFactory
 from ..random_seed_manager import FieldLevelSeedFactory, SimLevelSeedFactory
 from utils.planck_instrument import make_instrument, Instrument
 
@@ -73,22 +73,99 @@ class SimCreatorExecutor(BaseStageExecutor):
         self.units = cfg.scenario.units
         logger.info(f"Simulations will have units of {self.units}")
 
-        placeholder = pysm3.Model(nside=self.nside_sky, max_nside=self.nside_sky)
+        # placeholder = pysm3.Model(nside=self.nside_sky, max_nside=self.nside_sky)
 
-        preset_strings = list(cfg.model.sim.preset_strings)
-        logger.info(f"Preset strings are {preset_strings}")
+        ##############################
+        # Start of Adam's stuff
+        ##############################
+
+        # self.varied_comp_strs = list(dict(cfg.model.sim.components.varied).keys())
+        self.fixed_comp_strs = list(dict(cfg.model.sim.components).keys())
+
+        self.inst_comps = []
+
+        logger.debug('Instantiating fixed PySM3 component objects')
+        for comp in self.fixed_comp_strs:
+            self.inst_comps.append(hydra.utils.instantiate(cfg.model.sim.components[comp]))
+        logger.debug('Done instantiating fixed PySM3 component objects')
+
+        self.preset_strings = list(cfg.model.sim.preset_strings)
+        logger.info(f"Preset strings are {self.preset_strings}")
+
+        self.output_unit = cfg.scenario.units
+
+        # Instantiate components
+        # varied_comp_strs = list(dict(cfg.components.varied).keys())
+        # fixed_comp_strs = list(dict(cfg.components.fixed).keys())
+        # placeholder = []
+        # inst_comps = []
+
+        # for comp in varied_comp_strs:
+        #     # if comp is noise:
+        #     #     continue
+        #     placeholder.append(comp)
+
+        # Needs to be per sim
+        # ???
+        # logger.debug('Instantiating varied PySM3 component objects')
+        # for c, i in enumerate(placeholder):
+        #     self.sky_components[i] = instantiate(cfg.components.varied[c])
+        # logger.debug('Done instantiating varied PySM3 component objects')
+
+        # logger.debug('Instantiating fixed PySM3 component objects')
+        # for comp in fixed_comp_strs:
+        #     inst_comps.append(instantiate(cfg.components.fixed[comp]))
+        # logger.debug('Done instantiating fixed PySM3 component objects')
+
+        # preset_strings = list(cfg.model.sim.preset_strings)
+        # logger.info(f"Preset strings are {preset_strings}")
         
-        logger.debug('Creating PySM3 Sky object')
-        self.sky = pysm3.Sky(nside=self.nside_sky,
-                             component_objects=[placeholder],
-                             preset_strings=preset_strings,
-                             output_unit=cfg.scenario.units)
-        logger.debug('Done creating PySM3 Sky object')
+        # logger.debug('Creating PySM3 Sky object')
+        # sky = instantiate(
+        #     cfg.sky,
+        #     component_objects = inst_comps,
+        #     preset_strings = preset_strings
+        # )
+        # logger.debug('Done creating PySM3 Sky object')
+
+        ##############################
+        # End of Adam's stuff
+        ##############################
+
+        # logger.debug('Creating PySM3 Sky object')        
+        # self.sky = pysm3.Sky(nside=self.nside_sky,
+        #                      component_objects=[placeholder],
+        #                      preset_strings=preset_strings,
+        #                      output_unit=cfg.scenario.units)
+        # logger.debug('Done creating PySM3 Sky object')
+
         self.cmb_factory = CMBFactory(self.nside_sky)
 
     def execute(self) -> None:
-        logger.debug(f"Executing SimCreatorExecutor execute()")
-        self.default_execute()
+
+        ##############################
+        # Adam's stuff
+        ##############################
+
+        # self.placeholder = []
+
+        # for comp in self.varied_comp_strs:
+        #     # if comp is noise:
+        #     #     continue
+        #     p = pysm3.Model(nside=self.nside_sky, max_nside=self.nside_sky)
+        #     self.placeholder.append(p)
+
+        # self.placeholder.append(self.inst_comps)
+
+        logger.debug('Creating PySM3 Sky object')        
+        self.sky = pysm3.Sky(nside=self.nside_sky,
+                             component_objects=self.inst_comps,
+                             preset_strings=self.preset_strings,
+                             output_unit=self.output_unit)
+        logger.debug('Done creating PySM3 Sky object')
+
+        # logger.debug(f"Executing SimCreatorExecutor execute()")
+        # self.default_execute()
 
     def process_split(self, split: Split) -> None:
         for sim in split.iter_sims():
@@ -103,6 +180,16 @@ class SimCreatorExecutor(BaseStageExecutor):
         cmb = self.cmb_factory.make_cmb_lensed(cmb_seed, ps_path)
         self.sky.components[0] = cmb
         self.save_cmb_map_realization(cmb)
+
+        ##############################
+        # Adam's stuff
+        ##############################
+
+        # Don't worry about this yet
+        # logger.debug('Instantiating varied PySM3 component objects')
+        # for c, i in enumerate(self.placeholder):
+        #     self.sky.components[i] = instantiate(cfg.components.varied[c])
+        # logger.debug('Done instantiating varied PySM3 component objects')
 
         for freq, detector in self.instrument.dets.items():
             skymaps = self.sky.get_emission(detector.cen_freq)

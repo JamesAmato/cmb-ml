@@ -1,6 +1,6 @@
 d9:
   _target_: pysm3.ModifiedBlackBody
-  map_I: dust_maps/d9.fits
+  map_I: /home/adam/cmb_project/Assets/ComponentMaps/d9.fits
   map_mbb_index: 1.48
   map_mbb_temperature: 19.6
   unit_mbb_temperature: K

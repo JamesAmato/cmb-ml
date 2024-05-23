@@ -1,6 +1,6 @@
 s4:
   _target_: pysm3.PowerLaw
-  map_I: synch_maps/s4.fits
+  map_I: /home/adam/cmb_project/Assets/ComponentMaps/s4.fits
   map_pl_index: -3.1
   freq_ref_I: 23 GHz
   freq_ref_P: 23 GHz
