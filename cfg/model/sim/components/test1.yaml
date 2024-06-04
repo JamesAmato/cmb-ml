@@ -1,0 +1,5 @@
+test1:
+  _target_: pysm3.CMBLensed
+  cmb_spectra: /home/adam/cmb_project/Assets/ComponentMaps/test1.txt
+  nside: ${model.sim.nside_sky}
+  cmb_seed: 0

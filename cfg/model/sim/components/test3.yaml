@@ -1,8 +1,8 @@
-d9:
+test3:
   _target_: pysm3.ModifiedBlackBody
   map_I: /home/adam/cmb_project/Assets/ComponentMaps/d9.fits
-  map_mbb_index: 1.48
-  map_mbb_temperature: 19.6
+  map_mbb_index: 1.99
+  map_mbb_temperature: 50
   unit_mbb_temperature: K
   freq_ref_I: 353 GHz
   freq_ref_P: 353 GHz

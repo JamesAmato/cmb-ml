@@ -1,4 +1,4 @@
-s4:
+test4:
   _target_: pysm3.PowerLaw
   map_I: /home/adam/cmb_project/Assets/ComponentMaps/s4.fits
   map_pl_index: -3.1
