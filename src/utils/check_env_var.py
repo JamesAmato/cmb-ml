@@ -6,6 +6,13 @@ logger = logging.getLogger("EnvVarCheck")
 
 
 def validate_environment_variable(env_var_name):
+    """
+    Check if an environment variable is set and exit if not set.
+
+    Args:
+        env_var_name: The name of the environment variable to check.
+    """
+
     # Check if the environment variable is set
     env_var_value = os.getenv(env_var_name)
     if env_var_value is None:

@@ -2,17 +2,51 @@ import numpy as np
 
 
 def format_decimal_places(value, decimal_places):
-    """Format the number to the specified number of decimal places."""
+    """
+    Format the number to the specified number of decimal places.
+    
+    Args:
+        value: Number to format.
+        decimal_places: Number of decimal places to show.
+
+    Returns:
+        The formatted number as a string.
+    """
     formatted = f"{value:.{decimal_places}f}"
     return formatted
 
 def format_sci(value, exp, decimal_places):
+    """
+    Format the number to scientific notation.
+
+    Args:
+        value: Number to format.
+        exp: Exponent for scientific notation.
+        decimal_places: Number of decimal places to show.
+
+    Returns:
+        The formatted number as a string.
+    """
+    
     v = value / 10**exp
     formatted = f"{v:.{decimal_places-1}f}"
     return formatted
 
 def format_mean_std(mean, std, sig_digs=4, latex=False):
-    """Format mean and standard deviation to the same precision, using scientific notation if needed."""
+    """
+    Format mean and standard deviation to the same precision,
+    using scientific notation if needed.
+
+    Args:
+        mean: The mean.
+        std: The standard deviation.
+        sig_digs: The number of significant figures. TODO: Should be sig_figs?
+        latex: Optional boolean to use LaTeX formatting or not.
+
+    Returns:
+        Formatted mean and standard deviation as a string.
+
+    """
     sci_low_threshold = 0.001
     sci_high_threshold = 1000
     pm = r"\pm" if latex else "+/-"

@@ -16,9 +16,16 @@ Eventually, I guess.
 
 def convert_pysm3_to_hp(data: List[Quantity]) -> Tuple[List[np.ndarray], List[str]]:
     """
-    PySM3 format is typically either a Quantity or list of Quantity objects.
+    Convert from PySM3 format to Healpy format.
 
+    PySM3 format is typically either a Quantity or list of Quantity objects.
     Healpy expects lists of np.ndarrays and associated units.
+
+    Args:
+        data: The data in PySM3 format.
+
+    Returns:
+        The data in Healpy format.
     """
     # Handle Quantity objects first
     if isinstance(data, list):

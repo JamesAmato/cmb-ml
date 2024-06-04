@@ -100,10 +100,15 @@ class Beam:
 
 
 class GaussianBeam(Beam):
+    """
+    Utility class inheriting from the Beam class and representing a Gaussian beam.
+
+    Attributes:
+        beam_fwhm: The full width at half maximum of the beam in arcmin.
+        lmax: The maximum multipole moment of the beam.
+    """
+    
     def __init__(self, beam_fwhm, lmax) -> None:
-        """
-        beam_fwhm in arcmin
-        """
         # Convert fwhm from arcmin to radians
         self.fwhm = beam_fwhm * np.pi / (180*60)
         self.lmax = lmax
@@ -112,6 +117,14 @@ class GaussianBeam(Beam):
 
 
 class PlanckBeam(Beam):
+    """
+    Utility class inheriting from the Beam class and representing a Planck beam.
+
+    Attributes:
+        planck_path: The path to the Planck data.
+        lmax: The maximum multipole moment of the beam.
+    """
+
     def __init__(self, planck_path, lmax) -> None:
         self.planck_path = planck_path
         self.lmax = lmax
@@ -120,6 +133,13 @@ class PlanckBeam(Beam):
 
 
 class NoBeam(Beam):
+    """
+    Utility class inheriting from the Beam class and representing no beam.
+
+    Attributes:
+        lmax: The maximum multipole moment of the beam.
+    """
+
     def __init__(self, lmax) -> None:
         self.lmax = lmax
         beam = np.ones(lmax)
@@ -127,6 +147,17 @@ class NoBeam(Beam):
 
 
 def get_planck_beam(planck_path, lmax):
+    """
+    Retrieve the Planck beam from Planck data given an lmax.
+
+    Args:
+        planck_path: The path to the Planck data.
+        lmax: The maximum multipole moment of the beam.
+
+    Returns:
+        The Planck beam.
+    """
+
     hdul = fits.open(planck_path)
     beam = hdul[2].data['INT_BEAM']
     return Beam(beam[:lmax+1])

@@ -11,10 +11,36 @@ logger = logging.getLogger(__name__)
 
 
 def get_autopower(map_, mask, lmax):
+    """
+    Calculate the auto power spectrum of a map.
+
+    Args:
+        map_: The input map.
+        mask: The mask to apply to apply to the map.
+        lmax: The maximum multipole to include in the power spectrum.
+
+    Returns:
+        THe auto power spectrum of the map.
+    """
+    
     return get_xpower(map1=map_, map2=map_, mask=mask, lmax=lmax)
 
 
 def get_xpower(map1, map2, mask, lmax, use_pixel_weights=False):
+    """
+    Calculate the cross power spectrum of two maps.
+
+    Args:
+        map1: The first input map.
+        map2: The second input map.
+        mask: The mask to apply to the maps.
+        lmax: The maximum multipole to include in the power spectrum.
+        use_pixel_weights: Optional boolean to use pixel weights in the anafast function.
+
+    Returns:
+        The cross power spectrum of the two maps.
+    """
+    
     if mask is None:
         ps = hp.anafast(map1, map2, lmax=lmax, use_pixel_weights=use_pixel_weights)
     else:
@@ -40,6 +66,16 @@ def _dl_to_cl(dl, ells):
 
 
 class PowerSpectrum(ABC):
+    """
+    An abstract base class representing a power spectrum.
+
+    Attributes:
+        name: The name of the power spectrum.
+        cl: The power spectrum in Cl format.
+        ells: The multipoles of the power spectrum.
+        is_convolved: Optional boolean of whether the power spectrum is already convolved with the beam.
+    """
+
     def __init__(self, 
                  name: str, 
                  cl: np.ndarray, 
@@ -109,6 +145,21 @@ class PowerSpectrum(ABC):
 
 
 class AutoSpectrum(PowerSpectrum):
+    """
+    A class representing an auto power spectrum.
+
+    Attributes:
+        name: The name of the power spectrum.
+        cl: The power spectrum in Cl format.
+        ells: The multipoles of the power spectrum.
+        beam: The beam to convolve with the power spectrum.
+        is_convolved: Boolean of whether the power spectrum is already convolved with the beam.
+
+    Methods:
+        convolve(): Convolve the power spectrum with the beam.
+        deconvolve(): Deconvolve the power spectrum with the beam.
+    """
+
     def __init__(self, 
                  name: str, 
                  cl: np.ndarray, 
@@ -134,6 +185,22 @@ class AutoSpectrum(PowerSpectrum):
 
 
 class CrossSpectrum(PowerSpectrum):
+    """
+    A class representing a cross power spectrum.
+
+    Attributes:
+        name: The name of the power spectrum.
+        cl: The power spectrum in Cl format.
+        ells: The multipoles of the power spectrum.
+        beam1: The first beam to convolve with the power spectrum.
+        beam2: The second beam to convolve with the power spectrum.
+        is_convolved: Boolean of whether the power spectrum is already convolved with the beam.
+
+    Methods:
+        convolve(): Convolve the power spectrum with the two beams.
+        deconvolve(): Deconvolve the power spectrum with the two beams.
+    """
+
     def __init__(self, 
                  name: str, 
                  cl: np.ndarray, 
@@ -161,12 +228,46 @@ class CrossSpectrum(PowerSpectrum):
 
 
 def get_auto_ps_result(map_, mask, lmax, beam, is_convolved, name=None) -> PowerSpectrum:
+    """
+    Calculate the auto power spectrum of a map and
+    return it as an AutoSpectrum object.
+
+    Args:
+        map_: The input map.
+        mask: The mask to apply to apply to the map.
+        lmax: The maximum multipole to include in the power spectrum.
+        beam: The beam to convolve with the power spectrum.
+        is_convolved: Boolean of whether the power spectrum is already convolved with the beam.
+        name: Optional name of the power spectrum.
+
+    Returns:
+        The auto power specturm as an AutoSpectrum object
+    """
+    
     cl = get_autopower(map_, mask, lmax)
     ells = np.arange(lmax + 1)
     return AutoSpectrum(name, cl, ells, beam, is_convolved)
 
 
 def get_x_ps_result(map1, map2, mask, lmax, beam1, beam2, is_convolved, name=None) -> PowerSpectrum:
+    """
+    Calculate the cross power spectrum of two maps and
+    return it as a CrossSpectrum object.
+
+    Args:
+        map1: The first input map.
+        map2: The second input map.
+        mask: The mask to apply to the maps.
+        lmax: The maximum multipole to include in the power spectrum.
+        beam1: The first beam to convolve with the power spectrum.
+        beam2: The second beam to convolve with the power spectrum.
+        is_convolved: Boolean of whether the power spectrum is already convolved with the beam.
+        name: Optional name of the power spectrum.
+
+    Returns:
+        The cross power spectrum as a CrossSpectrum object.
+    """
+
     cl = get_xpower(map1=map1,
                     map2=map2,
                     mask=mask,
