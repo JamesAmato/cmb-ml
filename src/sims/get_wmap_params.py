@@ -4,9 +4,17 @@ import numpy as np
 
 def pull_params_from_file(wmap_chain_path, chain_idcs, params_to_get, wmap_chain_length):
     """
-    Get parameters from wmap chains.
-    
+    Get parameters from WMAP chains.
     For a tiny bit of speed, we do a single pass through the data files.
+
+    Args:
+        wmap_chain_path (str): The path to the WMAP chain.
+        chain_idcs (List): The list of chain indices.
+        params_to_get (List): The list of parameters to pull.
+        wmap_chain_length (int): The length of the WMAP chain.
+
+    Returns:
+        List: A list of the WMAP chain parameter values.
     """
     n_chain_rows = wmap_chain_length
     n_vals = len(chain_idcs)
@@ -44,6 +52,18 @@ def pull_params_from_file(wmap_chain_path, chain_idcs, params_to_get, wmap_chain
 
 
 def get_wmap_indices(n_indcs, seed:int, wmap_chain_length: int):
+    """
+    Retrieve the WMAP indices from a specific seed.
+
+    Args:
+        n_indcs (int): The number of indices to retrieve.
+        seed (int): The seed of the WMAP chain.
+        wmap_chain_length (int): The length of the WMAP chain.
+
+    Return:
+        List: A list of the WMAP indices.
+    """
+    
     rng = np.random.default_rng(seed=seed)
     set_of_indices = set(rng.integers(low=1, high=wmap_chain_length, size=n_indcs, endpoint=True))
     while len(set_of_indices) != n_indcs:

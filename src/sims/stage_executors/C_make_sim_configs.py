@@ -19,6 +19,19 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigExecutor(BaseStageExecutor):
+    """
+    A stage executor class that creates the simulation configs.
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+
+    Methods:
+        execute(): Create the simulation config.
+        process_split(split, these_idces): Process a specific data split.
+        make_chain_idcs_for_each_split(seed): Compile a list of distinct indices for each split.
+        make_cosmo_param_configs(chain_idcs, split): Make the cosmological parameter configs.
+    """
+
     def __init__(self, cfg: DictConfig) -> None:
         # The following stage_str must match the pipeline yaml
         super().__init__(cfg, stage_str="make_sim_configs")
@@ -35,6 +48,11 @@ class ConfigExecutor(BaseStageExecutor):
         self.seed = cfg.model.sim.cmb.wmap_indcs_seed
 
     def execute(self) -> None:
+        """
+        Execute the Config stage to create the
+        configs for the simulation.
+        """
+
         logger.debug(f"Running {self.__class__.__name__} execute() method.")
         all_idices = self.make_chain_idcs_for_each_split(self.seed)
         for split in self.splits:
@@ -42,6 +60,14 @@ class ConfigExecutor(BaseStageExecutor):
                 self.process_split(split, all_idices[split.name])
 
     def process_split(self, split: Split, these_idces) -> None:
+        """
+        Process the indices of a specified data split
+
+        Args:
+            split (Split): The data split.
+            these_idces (List): The indices to process.
+        """
+        
         split_cfg_dict = dict(
             ps_fidu_fixed = split.ps_fidu_fixed,
             n_sims = split.n_sims,
@@ -58,6 +84,17 @@ class ConfigExecutor(BaseStageExecutor):
         return 1 if split.ps_fidu_fixed else split.n_sims
 
     def make_chain_idcs_for_each_split(self, seed:int) -> Dict[str, List[int]]:
+        """
+        Compile a list of distinct indices for each split.
+
+        Args:
+            seed (int): The seed to use for generation.
+
+        Returns:
+            Dict: A dictionary where the keys are the split names and the values
+            are Lists of the chain indices.
+        """
+
         # We want to generate a set of WMAP parameters for each power spectrum to be generated.
         # We ALSO want all of the sets to be different.
         # We first compile a list of indices so that we know they're distinct, then 
@@ -86,6 +123,14 @@ class ConfigExecutor(BaseStageExecutor):
         return chain_idcs_dict
 
     def make_cosmo_param_configs(self, chain_idcs, split):
+        """
+        Make the cosmological parameter configs.
+
+        Args:
+            chain_idcs (List): List of chain indices.
+            split (Split): The data split.
+        """
+        
         wmap_params = pull_params_from_file(wmap_chain_path=self.wmap_chains_dir,
                                             chain_idcs=chain_idcs,
                                             params_to_get=self.wmap_param_labels,
@@ -99,3 +144,4 @@ class ConfigExecutor(BaseStageExecutor):
                 these_params = {key: values[i] for key, values in wmap_params.items()}
                 with self.name_tracker.set_context("sim_num", i):
                     self.out_wmap_config.write(use_alt_path=False, data=these_params)
+

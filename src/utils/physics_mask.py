@@ -11,12 +11,12 @@ def downgrade_mask(mask_data, nside_out, threshold):
     Downgrade the resolution of a mask to a specified resolution.
 
     Args:
-        mask_data: Numpy array representing the input mask data.
-        nside_out: The desired output resolution.
-        threshold: The threshold to apply to the downgraded mask.
+        mask_data (np.ndarray): Numpy array representing the input mask data.
+        nside_out (int): The desired output resolution.
+        threshold (float): The threshold to apply to the downgraded mask.
 
     Returns:
-        The downgraded mask with the applied threshold.
+        np.ndarray: The downgraded mask with the applied threshold.
     """
     
     nside_in = hp.get_map_size(mask_data)
@@ -35,11 +35,11 @@ def apply_threshold(mask, thresh):
     Apply a threshold to a mask.
 
     Args:
-        mask: Numpy array representing the input mask data.
-        thresh: The threshold to apply to the mask.
+        mask (np.ndarray): Numpy array representing the input mask data.
+        thresh (float): The threshold to apply to the mask.
 
     Returns:
-        The mask after applying the threshold.
+        np.ndarray: The mask after applying the threshold.
     """
 
     # Per Planck 2015 results:IX. Diffuse component separation: CMB maps

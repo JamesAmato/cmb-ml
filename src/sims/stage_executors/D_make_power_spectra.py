@@ -19,6 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 class TheoryPSExecutor(BaseStageExecutor):
+    """
+    A stage executor class that creates the power spectra theory.
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+
+    Methods:
+        execute(): Create the power spectra.
+        process_split(split): Process a specific data split.
+        make_ps(wmap_params, ps_asset, use_alt_path): Make the power spectra.
+    """
+    
     def __init__(self, cfg: DictConfig) -> None:
         # The following stage_str must match the pipeline yaml
         super().__init__(cfg, stage_str='make_theory_ps')
@@ -34,10 +46,22 @@ class TheoryPSExecutor(BaseStageExecutor):
         in_wmap_config_handler: Config
 
     def execute(self) -> None:
+        """
+        Execute the TheoryPS stage to create the
+        power spectra theory.
+        """
+
         logger.debug(f"Running {self.__class__.__name__} execute() method.")
         self.default_execute()  # In BaseStageExecutor
 
     def process_split(self, split: Split) -> None:
+        """
+        Process a specified data split
+
+        Args:
+            split (Split): The data split.
+        """
+
         if split.ps_fidu_fixed:
             self.make_ps(self.in_wmap_config, self.out_cmb_ps, use_alt_path=True)
         else:
@@ -49,6 +73,15 @@ class TheoryPSExecutor(BaseStageExecutor):
                 wmap_params: AssetWithPathAlts, 
                 ps_asset: AssetWithPathAlts,
                 use_alt_path) -> None:
+        """
+        Make the power spectra theory.
+
+        Args:
+            wmap_params (AssetWithPathAlts): The WMAP parameters.
+            ps_asset (AssetWithPathAlts): The power spectra asset.
+            use_alt_path (bool): Boolean of whether to use the alternate path.
+        """
+        
         # Pull cosmological parameters from wmap_configs created earlier
         cosmo_params = wmap_params.read(use_alt_path=use_alt_path)
         # cosmological parameters from WMAP chains have (slightly) different names in camb

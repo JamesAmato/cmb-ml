@@ -35,6 +35,21 @@ logger = logging.getLogger(__name__)
 
 
 class SimCreatorExecutor(BaseStageExecutor):
+    """
+    A stage executor class that creates the simulation.
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+
+    Methods:
+        execute(): Create the simulation.
+        process_split(split): Process a specific split.
+        process_sim(split, sim_num): Create a specific simulation in a split.
+        save_cmb_map_realization(cmb): Write a realized CMB map.
+        get_noise_map(freq, field_str, noise_seed, center_frequency): Retrieve a noise map.
+        get_nside_sky(): Retrieve the nside resolution of the sky.
+    """
+
     def __init__(self, cfg: DictConfig) -> None:
         # The following stage_str must match the pipeline yaml
         super().__init__(cfg, stage_str='make_sims')
@@ -79,6 +94,10 @@ class SimCreatorExecutor(BaseStageExecutor):
         self.cmb_factory = CMBFactory(self.nside_sky)
 
     def execute(self) -> None:
+        """
+        Execute the SimCreator stage to create the simulations.
+        """
+
         logger.debug(f"Running {self.__class__.__name__} execute() method.")
         placeholder = pysm3.Model(nside=self.nside_sky, max_nside=self.nside_sky)
         logger.debug('Creating PySM3 Sky object')
@@ -90,11 +109,26 @@ class SimCreatorExecutor(BaseStageExecutor):
         self.default_execute()
 
     def process_split(self, split: Split) -> None:
+        """
+        Process a specified data split
+
+        Args:
+            split (Split): The data split.
+        """
+
         for sim in split.iter_sims():
             with self.name_tracker.set_context("sim_num", sim):
                 self.process_sim(split, sim_num=sim)
 
     def process_sim(self, split: Split, sim_num: int) -> None:
+        """
+        Create a specific simulation in the split.
+
+        Args:
+            split (Split): The data split.
+            sim_num (int): The number of the simulation to create.
+        """
+        
         sim_name = self.name_tracker.sim_name()
         logger.debug(f"Creating simulation {split.name}:{sim_name}")
         cmb_seed = self.cmb_seed_factory.get_seed(split, sim_num)
@@ -128,6 +162,13 @@ class SimCreatorExecutor(BaseStageExecutor):
         logger.debug(f"For {split.name}:{sim_name}, done with simulation")
 
     def save_cmb_map_realization(self, cmb: CMBLensed):
+        """
+        Write a realized CMB map.
+
+        Args:
+            cmb (CMBLensed): The PySM3 CMBLensed object.
+        """
+        
         cmb_realization: Quantity = cmb.map
         nside_out = self.nside_out
         cmb_data, cmb_units = convert_pysm3_to_hp(cmb_realization)
@@ -135,6 +176,19 @@ class SimCreatorExecutor(BaseStageExecutor):
         self.out_cmb_map.write(data=scaled_map, column_units=cmb_units)
 
     def get_noise_map(self, freq, field_str, noise_seed, center_frequency=None):
+        """
+        Generate and retrieve a specific noise map.
+
+        Args:
+            freq (int): The specified frequency.
+            field_str (str): The name of the field.
+            noise_seed (int): The seed to randomize the noise.
+            center_frequency (int): Optional center frequency.
+
+        Returns:
+            Quantity: The generated noise map.
+        """
+        
         with self.name_tracker.set_context('freq', freq):
             with self.name_tracker.set_context('field', field_str):
                 # logger.debug(f"For {self.name_tracker.context['split']}:{self.name_tracker.context['sim_num']}, Getting noise map for {freq} GHz, {field_str}")
@@ -143,9 +197,17 @@ class SimCreatorExecutor(BaseStageExecutor):
                 return noise_map
 
     def get_nside_sky(self):
+        """
+        Retrieve the nside resolution of the sky.
+
+        Returns:
+            int: The sky nside.
+        """
+        
         nside_out = self.cfg.scenario.nside
         nside_sky_set = self.cfg.model.sim.get("nside_sky", None)
         nside_sky_factor = self.cfg.model.sim.get("nside_sky_factor", None)
 
         nside_sky = nside_sky_set if nside_sky_set else nside_out * nside_sky_factor
         return nside_sky
+    

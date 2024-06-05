@@ -6,11 +6,11 @@ def format_decimal_places(value, decimal_places):
     Format the number to the specified number of decimal places.
     
     Args:
-        value: Number to format.
-        decimal_places: Number of decimal places to show.
+        value (float): Number to format.
+        decimal_places (int): Number of decimal places to show.
 
     Returns:
-        The formatted number as a string.
+        str: The formatted number as a string.
     """
     formatted = f"{value:.{decimal_places}f}"
     return formatted
@@ -20,12 +20,12 @@ def format_sci(value, exp, decimal_places):
     Format the number to scientific notation.
 
     Args:
-        value: Number to format.
-        exp: Exponent for scientific notation.
-        decimal_places: Number of decimal places to show.
+        value (float): Number to format.
+        exp (int): Exponent for scientific notation.
+        decimal_places (int): Number of decimal places to show.
 
     Returns:
-        The formatted number as a string.
+        str: The formatted number as a string.
     """
     
     v = value / 10**exp
@@ -38,13 +38,13 @@ def format_mean_std(mean, std, sig_digs=4, latex=False):
     using scientific notation if needed.
 
     Args:
-        mean: The mean.
-        std: The standard deviation.
-        sig_digs: The number of significant figures. TODO: Should be sig_figs?
-        latex: Optional boolean to use LaTeX formatting or not.
+        mean (float): The mean.
+        std (float): The standard deviation.
+        sig_digs (int): The number of significant figures. TODO: Should be sig_figs?
+        latex (bool): Optional boolean to use LaTeX formatting or not.
 
     Returns:
-        Formatted mean and standard deviation as a string.
+        str: Formatted mean and standard deviation as a string.
 
     """
     sci_low_threshold = 0.001

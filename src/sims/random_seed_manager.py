@@ -13,6 +13,19 @@ logger = logging.getLogger('seed_logger')
 
 
 class SeedMaker:
+    """
+    A class that manages seeds for randomization.
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+        sky_component (str): The sky component to randomly generate.
+
+    Methods:
+        sim_num_str(sim): Retrieve the simulation number.
+        get_base_string(cfg): Retrieve the seed base string.
+        get_component_string(cfg, sky_component): Retrieve the seed string of a component.
+    """
+    
     def __init__(self, 
                  cfg: DictConfig, 
                  sky_component: str) -> None:
@@ -25,16 +38,47 @@ class SeedMaker:
             raise e
 
     def sim_num_str(self, sim: int) -> str:
+        """
+        Retrieve the simulation number.
+
+        Args:
+            sim (int): The simulation to get the number of.
+
+        Returns:
+            str: The simulation number in string form.
+        """
+        
         return f"{sim:0{self.str_num_digits}d}"
     
-    def get_base_string(self, 
+    def get_base_string(self,
                         cfg: DictConfig):
+        """
+        Retrieve the seed base string from the config.
+
+        Args:
+            cfg (DictConfig): The Hydra config to read.
+
+        Returns:
+            str: The seed base string.
+        """
+        
         base_string = cfg.model.sim.seed_base_string
         return str(base_string)
 
     def get_component_string(self, 
                              cfg: DictConfig, 
                              sky_component: str) -> str:
+        """
+        Retrieve the seed string of the specified sky component.
+
+        Args:
+            cfg (DictConfig): The Hydra config to read.
+            sky_component (str): The specified sky component.
+
+        Returns:
+            str: The seed string of the component.
+        """
+        
         try:
             base_string = cfg.model.sim[sky_component].seed_string
             pass
@@ -68,6 +112,18 @@ class SeedMaker:
 
 
 class SimLevelSeedFactory(SeedMaker):
+    """
+    An implementation of the SeedMaker class that
+    creates simulation level seeds
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+        sky_component (str): The sky component to use.
+
+    Methods:
+        get_seed(split, sim): Generate and retrieve a seed.
+    """
+    
     def __init__(self, 
                  cfg: DictConfig, 
                  sky_component: str) -> None:
@@ -76,12 +132,36 @@ class SimLevelSeedFactory(SeedMaker):
     def get_seed(self, 
                  split: Split, 
                  sim: int) -> int:
+        """
+        Generate and retrieve the seed of the
+        specified split for a simulation.
+
+        Args:
+            split (Split): The specified split.
+            sim (int): The specified simulation.
+
+        Returns:
+            int: The generated seed.
+        """
+        
         split_str = split.name
         sim_str = self.sim_num_str(sim)
         return self._get_seed(split_str, sim_str, self.component)
 
 
 class FieldLevelSeedFactory(SeedMaker):
+    """
+    An implementation of the SeedMaker class that
+    creates field level seeds
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+        sky_component (str): The sky component to use.
+
+    Methods:
+        get_seed(split, sim): Generate and retrieve a seed.
+    """
+
     def __init__(self, 
                  cfg: DictConfig, 
                  sky_component: str) -> None:
@@ -92,6 +172,20 @@ class FieldLevelSeedFactory(SeedMaker):
                  sim: int, 
                  freq: int, 
                  field_str: str):
+        """
+        Generate and retrieve the seed of the
+        specified field.
+
+        Args:
+            split (Split): The specified split.
+            sim (int): The specified simulation.
+            freq (int): The specified frequency.
+            field_str (str): The specified field string.
+
+        Returns:
+            int: The generated seed.
+        """
+
         split_str = split.name
         sim_str = self.sim_num_str(sim)
         freq_str = str(freq)

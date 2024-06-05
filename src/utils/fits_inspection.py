@@ -16,7 +16,7 @@ def print_out_header(fits_fn):
     Print out the header of a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
+        fits_fn (str): The filename of the FITS file.
     """
     
     # Open the FITS file
@@ -35,8 +35,8 @@ def get_num_fields_in_hdr(fits_fn, hdu) -> int:
     (Header Data Unit) in a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
-        hdu: The index of the HDU.
+        fits_fn (str): The filename of the FITS file.
+        hdu (int): The index of the HDU.
 
     Returns:
         The number of fields in the header.
@@ -75,12 +75,12 @@ def get_field_unit(fits_fn, hdu, field_idx):
     specified HDU (Header Data Unit) in a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
-        hdu: The index of the HDU.
-        field_idx: THe index of the field.
+        fits_fn (str): The filename of the FITS file.
+        hdu (int): The index of the HDU.
+        field_idx (int): THe index of the field.
 
     Returns:
-        The unit of the field.
+        str: The unit of the field.
     """
     
     with fits.open(fits_fn) as hdul:
@@ -98,7 +98,7 @@ def get_num_fields(fits_fn) -> Dict[int, int]:
     of a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
+        fits_fn (str): The filename of the FITS file.
 
     Returns:
         A dictionary where the keys area the HDU indices and the
@@ -123,7 +123,7 @@ def print_fits_information(fits_fn) -> None:
     Print out the information of a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
+        fits_fn (str): The filename of the FITS file.
     """
     
     fits_info = get_fits_information(fits_fn)
@@ -135,7 +135,7 @@ def get_fits_information(fits_fn):
     Get detailed information about a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
+        fits_fn (str): The filename of the FITS file.
 
     Returns:
         A nested dictionary where the keys of the top level are
@@ -188,7 +188,7 @@ def show_all_maps(fits_fn):
     of a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
+        fits_fn (str): The filename of the FITS file.
     """
     
     n_fields_per_hdu = get_num_fields(fits_fn)
@@ -205,9 +205,9 @@ def show_one_map(fits_fn, hdu_n, field_n):
     Display a specific map from a FITS file.
 
     Args:
-        fits_fn: The filename of the FITS file.
-        hdu_n: The number of the HDU (Header Data Unit).
-        field_n: The number of the field.
+        fits_fn (str): The filename of the FITS file.
+        hdu_n (int): The number of the HDU (Header Data Unit).
+        field_n (int): The number of the field.
     """
     
     this_map = hp.read_map(fits_fn, hdu=hdu_n, field=field_n)
@@ -221,10 +221,10 @@ def get_map_dtype(m: np.ndarray):
     with numba and mpi4py.
 
     Args:
-        m: Numpy array representing the map.
+        m (np.ndarray): Numpy array representing the map.
 
     Returns:
-        The data type of the map.
+        np.dtype: The data type of the map.
     """
     
     # From PySM3 template.py's read_map function, with minimal alteration:

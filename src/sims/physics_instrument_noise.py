@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 def planck_result_to_sd_map(fits_fn, hdu, field_idx, nside_out, cen_freq):
+    """
+    TODO: not quite sure what this does
+    """
+    
     logger.debug(f"physics_instrument_noise.planck_result_to_sd_map start")
     source_skymap = hp.read_map(fits_fn, hdu=hdu, field=field_idx)
 
@@ -37,6 +41,15 @@ def planck_result_to_sd_map(fits_fn, hdu, field_idx, nside_out, cen_freq):
 
 
 def make_random_noise_map(sd_map, random_seed, center_frequency):
+    """
+    Generate a random noise map.
+
+    Args:
+        sd_map: #TODO: not sure what this is
+        random_seed (int): The seed to randomize the noise map.
+        center_frequency (int): The center frequency.
+    """
+    
     #TODO: set units when redoing this function
     rng = np.random.default_rng(random_seed)
     noise_map = rng.normal(scale=sd_map)

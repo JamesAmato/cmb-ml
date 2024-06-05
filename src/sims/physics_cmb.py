@@ -16,6 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 def make_camb_ps(cosmo_params, lmax) -> camb.CAMBdata:
+    """
+    Make the CAMB power spectrum.
+
+    Args:
+        cosmo_params (List): The list of cosmological parameters.
+        lmax (int): The maximum multipole moment.
+
+    Return:
+        CAMBdata: The CAMB power spectrum.
+    """
+    
     #Set up a new set of parameters for CAMB
     # logger.debug(f"Beginning CAMB")
     pars: camb.CAMBparams = setup_camb(cosmo_params, lmax)
@@ -24,6 +35,17 @@ def make_camb_ps(cosmo_params, lmax) -> camb.CAMBdata:
 
 
 def setup_camb(cosmo_params: Dict[str, Any], lmax:int) -> camb.CAMBparams:
+    """
+    Setup the CAMB parameters.
+
+    Args:
+        cosmo_params (Dict): The cosmological parameters.
+        lmax (int): The maximum multipole moment.
+
+    Return:
+        CAMBparams: The created CAMB parameters.
+    """
+    
     pars = camb.CAMBparams()
 
     set_cosmology_args, init_power_args = _split_cosmo_params_dict(cosmo_params, pars)
@@ -71,6 +93,17 @@ def _log_camb_args(set_cosmo_args, init_power_args) -> None:
 
 
 def change_nside_of_map(cmb_maps: Union[np.ndarray, List[np.ndarray]], nside_out: int):
+    """
+    Change the nside resolution of the maps.
+
+    Args:
+        cmb_maps (Union[np.ndarray, List]): The CMB maps to change the nside of.
+        nside_out (int): The new nside resolution.
+
+    Returns:
+        List: The newly scaled map.
+    """
+    
     try:
         # Assume single map; if not, cmb_maps.dtype will fail duck typing
         scaled_map = hp.ud_grade(cmb_maps, nside_out=nside_out, dtype=cmb_maps.dtype)

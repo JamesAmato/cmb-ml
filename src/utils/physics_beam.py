@@ -10,7 +10,7 @@ class Beam:
     Beams may need to be squared for autopower spectra.
 
     Attributes:
-        beam: The beam profile used for convolution or deconvolution.
+        beam (np.ndarray): The beam profile used for convolution or deconvolution.
 
     Methods:
         conv1(ps): Apply the beam to the input power spectrum using convolution.
@@ -29,10 +29,10 @@ class Beam:
         be applied for the other map.
 
         Args:
-            ps: The input power spectrum.
+            ps (np.ndarray): The input power spectrum.
 
         Returns:
-            The power spectrum with the beam applied.
+            np.ndarray: The power spectrum with the beam applied.
         """
         ps_applied = ps * self.beam
         return ps_applied
@@ -44,10 +44,10 @@ class Beam:
         autopower spectrum calculation)
 
         Args:
-            ps: The input power spectrum.
+            ps (np.ndarray): The input power spectrum.
 
         Returns:
-            The power spectrum with the squared beam applied.
+            np.ndarray: The power spectrum with the squared beam applied.
         """
         ps_applied = ps * (self.beam ** 2)
         return ps_applied
@@ -59,10 +59,10 @@ class Beam:
         be applied for the other map.
 
         Args:
-            ps: The input power spectrum.
+            ps (np.ndarray): The input power spectrum.
 
         Returns:
-            The power spectrum with the beam effect removed.
+            np.ndarray: The power spectrum with the beam effect removed.
         """
         # TODO: Handle zeros in beam
         ps_applied = ps / self.beam
@@ -81,10 +81,10 @@ class Beam:
         autopower spectrum calculation)
 
         Args:
-            ps: The input power spectrum.
+            ps (np.ndarray): The input power spectrum.
 
         Returns:
-            The power spectrum with the squared beam effect removed.
+            np.ndarray: The power spectrum with the squared beam effect removed.
         """
         # TODO: Implement deconvolution with squared beam
         pass
@@ -104,8 +104,8 @@ class GaussianBeam(Beam):
     Utility class inheriting from the Beam class and representing a Gaussian beam.
 
     Attributes:
-        beam_fwhm: The full width at half maximum of the beam in arcmin.
-        lmax: The maximum multipole moment of the beam.
+        beam_fwhm (float): The full width at half maximum of the beam in arcmin.
+        lmax (int): The maximum multipole moment of the beam.
     """
     
     def __init__(self, beam_fwhm, lmax) -> None:
@@ -121,8 +121,8 @@ class PlanckBeam(Beam):
     Utility class inheriting from the Beam class and representing a Planck beam.
 
     Attributes:
-        planck_path: The path to the Planck data.
-        lmax: The maximum multipole moment of the beam.
+        planck_path (str): The path to the Planck data.
+        lmax (int): The maximum multipole moment of the beam.
     """
 
     def __init__(self, planck_path, lmax) -> None:
@@ -137,7 +137,7 @@ class NoBeam(Beam):
     Utility class inheriting from the Beam class and representing no beam.
 
     Attributes:
-        lmax: The maximum multipole moment of the beam.
+        lmax (int): The maximum multipole moment of the beam.
     """
 
     def __init__(self, lmax) -> None:
@@ -151,11 +151,11 @@ def get_planck_beam(planck_path, lmax):
     Retrieve the Planck beam from Planck data given an lmax.
 
     Args:
-        planck_path: The path to the Planck data.
-        lmax: The maximum multipole moment of the beam.
+        planck_path (str): The path to the Planck data.
+        lmax (int): The maximum multipole moment of the beam.
 
     Returns:
-        The Planck beam.
+        np.ndarray: The Planck beam.
     """
 
     hdul = fits.open(planck_path)

@@ -21,6 +21,19 @@ logger = logging.getLogger(__name__)
 
 
 class NoiseCacheExecutor(BaseStageExecutor):
+    """
+    A stage executor class that creates the noise cache.
+
+    Attributes:
+        cfg (DictConfig): The Hydra config to use.
+
+    Methods:
+        execute(): Create the noise cache.
+        write_wrapper(data, field_str): Write to noise cache to its file.
+        get_field_idx(src_path, field_str): Determine the corresponding field index.
+        get_src_path(detector): Get the source noise file path.
+    """
+    
     def __init__(self, cfg: DictConfig) -> None:
         # The following stage_str must match the pipeline yaml
         super().__init__(cfg, stage_str='make_noise_cache')
@@ -39,6 +52,11 @@ class NoiseCacheExecutor(BaseStageExecutor):
         self.instrument: Instrument = make_instrument(cfg=cfg, det_info=det_info)
 
     def execute(self) -> None:
+        """
+        Execute the NoiseCache stage to create the
+        noise cache for the simulation.
+        """
+        
         logger.debug(f"Running {self.__class__.__name__} execute() method.")
         hdu = self.cfg.model.sim.noise.hdu_n
         nside = self.cfg.scenario.nside
@@ -55,6 +73,14 @@ class NoiseCacheExecutor(BaseStageExecutor):
                     self.write_wrapper(data=st_dev_skymap, field_str=field_str)
 
     def write_wrapper(self, data: Quantity, field_str):
+        """
+        Write the noise cache to its file.
+
+        Args:
+            data (Quantity): The noise cache data.
+            field_str (str): The field of the noise cache.
+        """
+        
         units = data.unit
         data = data.value
         
@@ -71,12 +97,12 @@ class NoiseCacheExecutor(BaseStageExecutor):
         """
         Looks at fits file to determine field_idx corresponding to field_str
 
-        Parameters:
-        src_path (str): The path to the fits file.
-        field_str (str): The field string to look up.
+        Args:
+            src_path (str): The path to the fits file.
+            field_str (str): The field string to look up.
 
         Returns:
-        int: The field index corresponding to the field string.
+            int: The field index corresponding to the field string.
         """
         hdu = self.cfg.model.sim.noise.hdu_n
         field_idcs_dict = dict(self.cfg.model.sim.noise.field_idcs)
@@ -91,11 +117,11 @@ class NoiseCacheExecutor(BaseStageExecutor):
         """
         Get the path for the source noise file based on the hydra configs.
 
-        Parameters:
-        detector (int): The nominal frequency of the detector.
+        Args:
+            detector (int): The nominal frequency of the detector.
 
         Returns:
-        str: The path for the fits file containing the noise.
+            str: The path for the fits file containing the noise.
         """
         fn       = self.cfg.model.sim.noise.src_files[detector]
         src_root = self.cfg.local_system.assets_dir
