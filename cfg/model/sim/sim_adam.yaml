@@ -2,10 +2,11 @@ defaults:
   - cmb:   wmap9_mnu
   - noise: base_noise
   - components:
+    - weird_cmb
     # - f1
-    - d9
+    # - d9
     # - s4
-    - test1
+    # - test1
     # - test2
     # - test3
     # - test4
