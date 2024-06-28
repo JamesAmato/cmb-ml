@@ -3,13 +3,13 @@ defaults:
   - file_system : common_fs
   - pipeline    : assembly_sim
   - scenario    : scenario_t
-  - splits      : all_t
+  - splits      : "1-10"
   # simulation must listed be after scenario and splits to build the simulation seed
   - model/sim   : sim_t
   - override hydra/job_logging: custom_log
   - _self_
 
-dataset_name: ${scenario.map_fields}_${scenario.nside}_${splits.name}
+dataset_name: ${scenario.map_fields}_${scenario.nside}_${splits.name}_NoiseBreakout
 working_dir : "Simulation_Working/"
 hydra:
   run:

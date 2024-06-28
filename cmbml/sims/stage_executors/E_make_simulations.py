@@ -41,8 +41,10 @@ class SimCreatorExecutor(BaseStageExecutor):
 
         self.out_cmb_map: Asset = self.assets_out['cmb_map']
         self.out_obs_maps: Asset = self.assets_out['obs_maps']
+        self.out_noise_maps: Asset = self.assets_out['noise_maps']
         out_cmb_map_handler: HealpyMap
         out_obs_maps_handler: HealpyMap
+        out_noise_map_handler: HealpyMap
 
         self.in_noise_cache: Asset = self.assets_in['noise_cache']
         self.in_cmb_ps: AssetWithPathAlts = self.assets_in['cmb_ps']
@@ -108,6 +110,7 @@ class SimCreatorExecutor(BaseStageExecutor):
             skymaps = self.sky.get_emission(detector.cen_freq)
 
             obs_map = []
+            noise_maps = []
             column_names = []
             for skymap, field_str in zip(skymaps, detector.fields):
                 # Use pysm3.apply_smoothing... to convolve the map with the planck detector beam
@@ -117,6 +120,7 @@ class SimCreatorExecutor(BaseStageExecutor):
                                                                          output_nside=self.nside_out)
                 noise_seed = self.noise_seed_factory.get_seed(split.name, sim_num, freq, field_str)
                 noise_map = self.get_noise_map(freq, field_str, noise_seed)
+                noise_maps.append(noise_map)
                 final_map = map_smoothed + noise_map
                 obs_map.append(final_map)
 
@@ -125,10 +129,12 @@ class SimCreatorExecutor(BaseStageExecutor):
             with self.name_tracker.set_contexts(dict(freq=freq)):
                 self.out_obs_maps.write(data=obs_map,
                                         column_names=column_names)
+                self.out_noise_maps.write(data=noise_maps,
+                                          column_names=column_names)
             logger.debug(f"For {split.name}:{sim_name}, {freq} GHz: done with channel")
         logger.debug(f"For {split.name}:{sim_name}, done with simulation")
 
-    def save_cmb_map_realization(self, cmb: CMBLensed):
+    def save_cmb_map_realization(self, cmb: CMBLensed) -> None:
         cmb_realization: Quantity = cmb.map
         nside_out = self.nside_out
         cmb_data, cmb_units = convert_pysm3_to_hp(cmb_realization)
