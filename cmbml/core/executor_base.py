@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-# from typing import Dict, List, Tuple, Callable, Union
+from typing import Any
 import logging
 # import re
 # 
@@ -78,16 +78,20 @@ class BaseStageExecutor(ABC):
 
         Returns either a list of sims, or None
         """
-        sim_nums = self._config_help.get_stage_element('override_n_sims', stage_str=self.stage_str)
+        sim_nums = self._config_help.get_stage_elem_silent('override_n_sims', stage_str=self.stage_str)
         try:
             return list(range(sim_nums))
         except TypeError:
             return sim_nums
 
-    def get_stage_element(self, stage_element):
-        return self._config_help.get_stage_element(stage_element, stage_str=self.stage_str)
+    def get_stage_element(self, 
+                          stage_element: str, 
+                          stage_str: str=None) -> Any:
+        if stage_str is None:
+            stage_str = self.stage_str
+        return self._config_help.get_stage_element(stage_element, stage_str=stage_str)
 
-    def get_stage_element_silent(self, stage_element):
+    def get_stage_element_silent(self, stage_element, stage_str: str=None) -> Any:
         """Stage config value, or None when the key isn't present.
 
         For optional settings where absence is meaningful. Use
@@ -95,7 +99,9 @@ class BaseStageExecutor(ABC):
         with the stage and key named, which prerun_pipeline surfaces before
         anything runs.
         """
-        return self._config_help.get_stage_elem_silent(stage_element, stage_str=self.stage_str)
+        if stage_str is None:
+            stage_str = self.stage_str
+        return self._config_help.get_stage_elem_silent(stage_element, stage_str=stage_str)
 
     def ensure_splits(self):
         if len(self.splits) == 0:

@@ -25,6 +25,8 @@ class ConfigHelper:
     def get_stage_element(self, 
                           stage_element: str, 
                           stage_str: str=None) -> Any:
+        if stage_str is None:
+            stage_str = self.stage_str
         cfg_pipeline = self.cfg.pipeline
         cfg_stage = cfg_pipeline.get(stage_str)
         if cfg_stage is None:
@@ -84,11 +86,11 @@ class ConfigHelper:
         return assets[asset]
 
     def get_epochs(self, stage_str=None):
-        epochs = self.get_stage_elem_silent(stage_element="epochs")
+        epochs = self.get_stage_elem_silent(stage_element="epochs", stage_str=stage_str)
         return epochs
 
     def get_override_sim_ns(self, stage_str=None):
-        or_sn = self.get_stage_elem_silent(stage_element="override_n_sims")
+        or_sn = self.get_stage_elem_silent(stage_element="override_n_sims", stage_str=stage_str)
         return or_sn
 
 
