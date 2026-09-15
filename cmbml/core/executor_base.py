@@ -87,6 +87,16 @@ class BaseStageExecutor(ABC):
     def get_stage_element(self, stage_element):
         return self._config_help.get_stage_element(stage_element, stage_str=self.stage_str)
 
+    def get_stage_element_silent(self, stage_element):
+        """Stage config value, or None when the key isn't present.
+
+        For optional settings where absence is meaningful. Use
+        get_stage_element() when the key is required — it fails in __init__
+        with the stage and key named, which prerun_pipeline surfaces before
+        anything runs.
+        """
+        return self._config_help.get_stage_elem_silent(stage_element, stage_str=self.stage_str)
+
     def ensure_splits(self):
         if len(self.splits) == 0:
             raise ValueError("No splits found in the pipeline configuration for this Executor.")
