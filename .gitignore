@@ -13,6 +13,8 @@ multirun/
 build/
 dist/
 *.egg-info/
+cmbml.egg-info/
+cmbml/_build_info.py
 
 # Ignore local system files
 .vscode/
@@ -24,5 +26,4 @@ __pycache__/
 junk.*
 junk*.*
 
-build/
-cmbml.egg-info/
+

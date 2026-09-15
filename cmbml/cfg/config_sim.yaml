@@ -3,13 +3,13 @@ defaults:
   - file_system    : common_fs
   - pipeline       : assembly_sim_flex
   - scenario       : scenario
-  - splits         : all_2000
+  - splits         : all
   - model/sim      : sim_flex_fgs
   - model/analysis : basic_analysis
   - override hydra/job_logging: custom_log
   - _self_
 
-dataset_name: "${map_fields}_${scenario.nside}_${splits.name}"
+dataset_name: "${map_fields}_${scenario.nside}_${splits.name}_PLACEHOLDER"
 working_dir : "Simulation_Working/"
 hydra:
   run:

@@ -1,10 +1,13 @@
 # import pkg_resources
 from importlib.resources import files
 from importlib.metadata import distributions
+import sys
+import os
 import shutil
 import ast
 import yaml
 import zipfile
+import json
 from pathlib import Path
 from os.path import commonpath
 
@@ -23,15 +26,20 @@ class LogMaker:
                  cfg: DictConfig) -> None:
 
         self.namer = LogsNamer(cfg, HydraConfig.get())
-        self.source_dir = "cmbml"
+        try:
+            source_dirs = cfg.file_system.source_dirs
+            self.source_dirs = [str(s) for s in source_dirs]
+        except Exception:
+            self.source_dirs = ["cmbml"]
 
     def log_procedure_to_hydra(self, source_script) -> None:
         target_root = self.namer.hydra_scripts_path
         target_root.mkdir(parents=True, exist_ok=True)
         self.log_py_to_hydra(source_script, target_root)
         self.log_cfgs_to_hydra(target_root)
-        self.log_poetry_lock(source_script, target_root)
+        self.log_conda_env(target_root)
         self.log_library_versions(target_root)
+        self.log_git_state(source_script, target_root)
 
     def log_library_versions(self, target_root):
         """
@@ -45,176 +53,164 @@ class LogMaker:
         with target_path.open("w") as f:
             f.write("\n".join(package_list))
 
-    def log_poetry_lock(self, source_script, target_root):
-        poetry_lock_path = Path(source_script).parent / "poetry.lock"
-        if poetry_lock_path.exists():
-            target_path = Path(target_root) / "poetry.lock"
-            shutil.copy(poetry_lock_path, target_path)
+    def log_conda_env(self, target_root):
+        """
+        Exports the active conda environment to environment.yml.
+
+        Complements requirements.txt: that file lists installed distributions
+        via importlib.metadata, which misses conda-installed non-pip packages,
+        the channels they came from, and the Python build itself. Relevant here
+        because the environment pins CUDA-linked packages.
+
+        Silently skipped if conda is unavailable.
+        """
+        import subprocess
+
+        env_prefix = os.environ.get("CONDA_PREFIX")
+        if not env_prefix:
+            logger.info("No CONDA_PREFIX; skipping conda environment export.")
+            return
+
+        target_path = Path(target_root) / "environment.yml"
+        try:
+            result = subprocess.run(
+                ["conda", "env", "export", "-p", env_prefix],
+                capture_output=True, text=True, timeout=120,
+            )
+        except (OSError, subprocess.TimeoutExpired) as e:
+            logger.warning(f"Could not export conda environment: {e}")
+            return
+
+        if result.returncode != 0:
+            logger.warning(f"conda env export failed: {result.stderr.strip()}")
+            return
+
+        with target_path.open("w") as f:
+            f.write(result.stdout)
 
     def log_py_to_hydra(self, source_script, target_root):
         """
-        Collects Python source files reachable from source_script and archives
-        them as zip files under target_root.
+        Collects every first-party Python file reachable by import from
+        source_script and archives them into a single ``code.zip`` under
+        target_root.
 
-        Two source roots are considered:
-          1. Local packages sitting next to source_script (e.g. d2ps_nn/, pyilc_local/).
-             These are discovered by scanning the script's directory for importable
-             packages and checking which ones are actually imported.
-          2. The installed cmbml package, located via cmbml.__file__.
+        "First-party" means either:
+          1. The file lives under one of the whitelisted package roots
+             (self.source_dirs, e.g. cmbml), located via import, OR
+          2. The file lives under the directory of the running script
+             (e.g. e-d2ps/ or cmb-ml/), which sweeps in the script itself
+             plus any local sub-packages it imports (d2ps_nn, d2ps_fcn, ...).
 
-        Each source root is archived as a separate zip:
-            <target_root>/<package_name>.zip
-        The zip preserves the internal directory structure of the package so that
-        it remains human-browsable without extraction.
+        External libraries (stdlib, numpy, hydra, etc.) are ignored.
+
+        The zip is laid out so it is human-browsable without extraction, with
+        each first-party package and the running script appearing at the top
+        level, e.g.:
+
+            code.zip
+            ├── main_param_d2ps.py
+            ├── d2ps_nn/...
+            ├── d2ps_fcn/...
+            └── cmbml/...
         """
-        source_script = Path(source_script)
+        source_script = Path(source_script).resolve()
         script_dir = source_script.parent
 
-        # --- 1. Collect files from local packages next to the script ---
-        local_package_roots = self._find_local_package_roots(script_dir)
-        for pkg_root in local_package_roots:
-            py_files = self._find_local_imports(source_script, pkg_root)
-            if py_files:
-                zip_name = pkg_root.name + ".zip"
-                self._archive_files(py_files, pkg_root.parent, target_root / zip_name)
+        # Resolve whitelisted package roots (e.g. cmbml -> .../cmbml).
+        whitelist_roots = self._resolve_whitelist_roots()
 
-        # --- 2. Collect files from the installed cmbml package ---
-        cmbml_root = self._find_installed_cmbml_root()
-        if cmbml_root is not None:
-            cmbml_files = self._find_installed_imports(source_script, cmbml_root)
-            if cmbml_files:
-                zip_name = cmbml_root.name + ".zip"
-                self._archive_files(cmbml_files, cmbml_root.parent, target_root / zip_name)
-        else:
-            logger.warning("Could not locate installed cmbml package for logging.")
+        # The set of roots we will follow/keep imports from. Order matters for
+        # archive-name assignment: whitelist roots are checked before the script
+        # dir so that a whitelisted package nested inside the script dir (e.g.
+        # cmbml living inside cmb-ml/) is attributed to the package, not the
+        # script dir. This prevents duplication.
+        keep_roots = list(whitelist_roots) + [script_dir]
 
-    # ------------------------------------------------------------------
-    # Source-root discovery helpers
-    # ------------------------------------------------------------------
+        py_files = self._trace_imports(
+            start_file=source_script,
+            start_dir=script_dir,
+            keep_roots=keep_roots,
+            whitelist_roots=whitelist_roots,
+        )
 
-    @staticmethod
-    def _find_local_package_roots(script_dir: Path) -> list:
-        """
-        Returns a list of package directories (containing __init__.py) that sit
-        directly next to the calling script. These are candidates for local,
-        non-installed libraries (e.g. d2ps_nn/, pyilc_local/).
-        """
+        if not py_files:
+            logger.warning("No first-party Python files found to log.")
+            return
+
+        self._archive_files(
+            py_files=py_files,
+            whitelist_roots=whitelist_roots,
+            script_dir=script_dir,
+            zip_path=target_root / "code.zip",
+        )
+
+    def _resolve_whitelist_roots(self, with_names=False):
         roots = []
-        for item in script_dir.iterdir():
-            if item.is_dir() and (item / "__init__.py").exists():
-                roots.append(item)
+        for pkg_name in self.source_dirs:
+            try:
+                module = __import__(pkg_name)
+            except ImportError:
+                logger.warning(f"Whitelisted package could not be imported: {pkg_name}")
+                continue
+            pkg_file = getattr(module, "__file__", None)
+            if pkg_file is None:
+                logger.warning(f"Whitelisted package has no __file__: {pkg_name}")
+                continue
+            root = Path(pkg_file).parent.resolve()
+            roots.append((pkg_name, root) if with_names else root)
         return roots
 
     @staticmethod
-    def _find_installed_cmbml_root() -> Path:
+    def _trace_imports(start_file: Path,
+                       start_dir: Path,
+                       keep_roots: list,
+                       whitelist_roots: list) -> set:
         """
-        Locates the root directory of the installed cmbml package via its
-        __file__ attribute. Returns None if cmbml cannot be imported.
-        """
-        try:
-            import cmbml
-            return Path(cmbml.__file__).parent
-        except ImportError:
-            return None
+        Recursively walks imports starting from start_file, collecting every .py
+        file whose resolved path is inside any of keep_roots.
 
-    # ------------------------------------------------------------------
-    # Import-tracing helpers
-    # ------------------------------------------------------------------
+        Every visited file is added to ``seen`` to prevent infinite loops. Only
+        files inside a keep_root are added to ``collected``. The start_file is
+        always walked for its imports; it will also be collected if it lives
+        inside a keep_root (which it does, since its own directory is a keep
+        root).
 
-    @staticmethod
-    def _find_local_imports(source_script: Path, pkg_root: Path) -> set:
-        """
-        Traces all Python files reachable from source_script whose resolved
-        path falls inside pkg_root.
-
-        This covers the case where the library lives next to the script and is
-        not installed (e.g. d2ps_nn/ or pyilc_local/).
-        """
-        return LogMaker._trace_imports(
-            start_file=Path(source_script),
-            start_dir=Path(source_script).parent,
-            allowed_root=pkg_root,
-        )
-
-    @staticmethod
-    def _find_installed_imports(source_script: Path, pkg_root: Path) -> set:
-        """
-        Traces all Python files reachable from source_script whose resolved
-        path falls inside pkg_root (the installed package directory).
-
-        Because the installed package is not next to the script, we seed the
-        walk with the package's own __init__.py once we detect that source_script
-        imports from it, then recursively follow imports within the package.
-        """
-        # Check whether source_script actually imports from this package at all.
-        pkg_name = pkg_root.name  # e.g. "cmbml"
-        if not LogMaker._script_imports_package(source_script, pkg_name):
-            return set()
-
-        # Seed the walk from the package __init__.py.
-        init_file = pkg_root / "__init__.py"
-        if not init_file.exists():
-            logger.warning(f"No __init__.py found in installed package root: {pkg_root}")
-            return set()
-
-        return LogMaker._trace_imports(
-            start_file=init_file,
-            start_dir=pkg_root,
-            allowed_root=pkg_root,
-        )
-
-    @staticmethod
-    def _script_imports_package(script_path: Path, pkg_name: str) -> bool:
-        """
-        Returns True if script_path contains any import statement that
-        references pkg_name at the top level.
-        """
-        try:
-            with script_path.open("r") as f:
-                tree = ast.parse(f.read(), filename=str(script_path))
-        except (OSError, SyntaxError) as e:
-            logger.warning(f"Could not parse {script_path} for import check: {e}")
-            return False
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module and node.module.split(".")[0] == pkg_name:
-                    return True
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    if alias.name.split(".")[0] == pkg_name:
-                        return True
-        return False
-
-    @staticmethod
-    def _trace_imports(start_file: Path, start_dir: Path, allowed_root: Path) -> set:
-        """
-        Recursively walks imports starting from start_file, collecting all .py
-        files whose resolved path is inside allowed_root.
-
-        Every visited file (inside or outside allowed_root) is added to `seen`
-        to prevent infinite loops. Only files inside allowed_root are added to
-        `collected` and returned. This means start_file itself is walked for its
-        imports even if it lives outside allowed_root (e.g. it's the calling
-        script), but it is not included in the output.
+        Resolution rules:
+          * Absolute imports of a whitelisted package (e.g. ``from cmbml.core
+            import X``) are resolved against that package's actual root, not the
+            script directory. This is what makes installed first-party packages
+            work.
+          * Other absolute imports are resolved against start_dir (the script
+            directory), which catches local sibling packages (d2ps_nn, ...).
+          * Relative imports (``from . import x``, ``from ..y import z``) are
+            resolved by walking up from the importing file's directory.
 
         Args:
-            start_file:    The .py file to start tracing from.
-            start_dir:     The directory considered "current" for relative imports.
-            allowed_root:  Only files inside this directory are collected.
-        Returns:
-            A set of Path objects for every reachable .py file inside allowed_root.
+            start_file:       The .py file to start tracing from.
+            start_dir:        Directory treated as the base for top-level
+                              absolute imports that are not whitelisted.
+            keep_roots:       Files under any of these directories are collected.
+            whitelist_roots:  Roots of whitelisted packages, keyed by their
+                              directory name for absolute-import redirection.
         """
-        collected = set()   # files inside allowed_root (the output)
-        seen = set()        # all visited files (loop prevention)
+        keep_roots = [Path(r).resolve() for r in keep_roots]
+        whitelist_roots = [Path(r).resolve() for r in whitelist_roots]
+        # Map top-level package name -> its root, for absolute import redirect.
+        whitelist_by_name = {r.name: r for r in whitelist_roots}
+
+        collected = set()
+        seen = set()
         unresolved = set()
 
-        def _is_inside(path: Path) -> bool:
-            try:
-                path.resolve().relative_to(allowed_root.resolve())
-                return True
-            except ValueError:
-                return False
+        def _is_kept(path: Path) -> bool:
+            rp = path.resolve()
+            for root in keep_roots:
+                try:
+                    rp.relative_to(root)
+                    return True
+                except ValueError:
+                    continue
+            return False
 
         def _get_full_path(module_name: str, current_dir: Path):
             parts = module_name.split(".")
@@ -225,16 +221,84 @@ class LogMaker:
                 return path / "__init__.py"
             return None
 
+        def _follow_names_as_submodules(resolved: Path, names):
+            """
+            For a ``from <pkg> import a, b`` statement where <pkg> resolved to a
+            package (its __init__.py), each imported name may itself be a
+            submodule (e.g. ``from d2ps_nn import helper`` -> helper.py) rather
+            than just an attribute. If a name corresponds to a .py file or
+            subpackage next to the __init__.py, follow it. Names that are merely
+            attributes (functions, classes) simply won't match and are ignored.
+            """
+            if resolved is None or resolved.name != "__init__.py":
+                return
+            pkg_dir = resolved.parent
+            for alias in names:
+                # Star imports and attribute imports won't resolve to files.
+                if alias.name == "*":
+                    continue
+                sub_py = pkg_dir / f"{alias.name}.py"
+                sub_pkg = pkg_dir / alias.name / "__init__.py"
+                if sub_py.exists():
+                    _walk(sub_py, sub_py.parent)
+                elif sub_pkg.exists():
+                    _walk(sub_pkg, sub_pkg.parent)
+
+        def _resolve_absolute(parts: list):
+            """
+            Resolve an absolute (level == 0) dotted import to a file path.
+            Whitelisted top-level packages are redirected to their real root;
+            everything else is resolved against start_dir (the project base).
+            Absolute imports never resolve relative to the importing file.
+            """
+            if not parts:
+                return None
+            top = parts[0]
+            if top in whitelist_by_name:
+                base = whitelist_by_name[top]
+                rest = parts[1:]
+                root_init = (base / "__init__.py")
+                if root_init.exists() and _is_kept(root_init.resolve()):
+                    collected.add(root_init.resolve())
+            else:
+                base = start_dir
+                rest = parts
+            _collect_package_inits(base, rest)
+            target = base.joinpath(*rest)
+            if target.with_suffix(".py").exists():
+                return target.with_suffix(".py")
+            if (target / "__init__.py").exists():
+                return target / "__init__.py"
+            return None
+
+        def _collect_package_inits(base: Path, rest: list):
+            """Collect each intermediate package __init__.py along a dotted
+            import path, without following its own imports.
+
+            Python executes these on the way down (``import cmbml.core.split``
+            runs cmbml/__init__.py and cmbml/core/__init__.py), so they are part
+            of what ran. Their re-exports are NOT followed: doing so would pull
+            in everything the package exposes, whether this run used it or not.
+            """
+            path = base
+            for part in rest[:-1]:
+                path = path / part
+                init = (path / "__init__.py")
+                if init.exists():
+                    init = init.resolve()
+                    if _is_kept(init):
+                        collected.add(init)
+
         def _walk(filename: Path, current_dir: Path):
             filename = filename.resolve()
             if filename in seen:
                 return
             seen.add(filename)
-            if _is_inside(filename):
+            if _is_kept(filename):
                 collected.add(filename)
 
             try:
-                with filename.open("r") as fh:
+                with filename.open("r", encoding="utf-8") as fh:
                     tree = ast.parse(fh.read(), filename=str(filename))
             except (OSError, SyntaxError) as e:
                 logger.warning(f"Could not parse {filename}: {e}")
@@ -242,42 +306,55 @@ class LogMaker:
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.ImportFrom):
+                    level = node.level
                     if node.module is None:
                         # Bare relative import: "from . import something"
-                        level = node.level
                         mod_path = current_dir
                         for _ in range(level - 1):
                             mod_path = mod_path.parent
                         init = mod_path / "__init__.py"
                         if init.exists():
                             _walk(init, mod_path)
-                    else:
+                            _follow_names_as_submodules(init, node.names)
+                        continue
+
+                    if level == 0:
+                        # Absolute import — always resolved from the project base
+                        # (start_dir) or a whitelisted package root, never from
+                        # the importing file's own directory.
                         parts = node.module.split(".")
-                        # Strip leading package name if it matches allowed_root
-                        if parts[0] == allowed_root.name:
-                            parts = parts[1:]
-                        level = node.level
-                        if level == 0:
-                            # Absolute import — resolve from allowed_root
-                            mod_path = allowed_root
+                        resolved = _resolve_absolute(parts)
+                        if resolved is not None:
+                            _walk(resolved, resolved.parent)
+                            _follow_names_as_submodules(resolved, node.names)
                         else:
-                            # Relative import — navigate up from current_dir
-                            mod_path = current_dir
-                            for _ in range(level - 1):
-                                mod_path = mod_path.parent
+                            unresolved.add(node.module)
+                    else:
+                        # Relative import: walk up from current_dir.
+                        mod_path = current_dir
+                        for _ in range(level - 1):
+                            mod_path = mod_path.parent
+                        parts = node.module.split(".")
                         target = mod_path.joinpath(*parts)
                         if target.with_suffix(".py").exists():
                             _walk(target.with_suffix(".py"), target.parent)
                         elif (target / "__init__.py").exists():
-                            _walk(target / "__init__.py", target)
+                            init_t = target / "__init__.py"
+                            _walk(init_t, target)
+                            _follow_names_as_submodules(init_t, node.names)
                         else:
                             unresolved.add(node.module)
 
                 elif isinstance(node, ast.Import):
                     for alias in node.names:
-                        full_path = _get_full_path(alias.name, current_dir)
-                        if full_path and full_path.exists():
-                            _walk(full_path, full_path.parent)
+                        parts = alias.name.split(".")
+                        # Try whitelist/project-base resolution first, then a
+                        # local fallback relative to the importing file.
+                        resolved = _resolve_absolute(parts)
+                        if resolved is None:
+                            resolved = _get_full_path(alias.name, current_dir)
+                        if resolved is not None and resolved.exists():
+                            _walk(resolved, resolved.parent)
                         else:
                             unresolved.add(alias.name)
 
@@ -289,37 +366,49 @@ class LogMaker:
 
         return collected
 
-    # ------------------------------------------------------------------
-    # Archiving helper
-    # ------------------------------------------------------------------
-
     @staticmethod
-    def _archive_files(py_files: set, base_path: Path, zip_path: Path):
+    def _archive_files(py_files: set,
+                       whitelist_roots: list,
+                       script_dir: Path,
+                       zip_path: Path):
         """
-        Archives a collection of .py files into a zip at zip_path.
+        Archives all collected .py files into a single zip at zip_path.
 
-        Each file's path inside the zip is relative to base_path, so the zip
-        remains human-browsable (e.g. cmbml/core/log_maker.py).
+        Each file's name inside the zip is computed so the archive is browsable
+        with packages at the top level:
+          * Files under a whitelisted package root are stored relative to that
+            root's PARENT (giving e.g. ``cmbml/core/log_maker.py``).
+          * All other files are stored relative to script_dir (giving e.g.
+            ``main_param_d2ps.py`` and ``d2ps_nn/...`` at the top level).
 
-        Args:
-            py_files:  Set of absolute Path objects to include.
-            base_path: The root used to compute relative paths inside the zip.
-            zip_path:  Destination .zip file path.
+        Whitelist roots are checked first so a package nested inside script_dir
+        (e.g. cmbml inside cmb-ml/) is attributed once, to the package, with no
+        duplication.
         """
-        base_path = base_path.resolve()
+        whitelist_roots = [Path(r).resolve() for r in whitelist_roots]
+        script_dir = Path(script_dir).resolve()
         zip_path.parent.mkdir(parents=True, exist_ok=True)
+
+        def _arcname(py_file: Path):
+            rp = py_file.resolve()
+            for root in whitelist_roots:
+                try:
+                    # Store under <pkgname>/<rel> by going relative to root.parent
+                    return rp.relative_to(root.parent)
+                except ValueError:
+                    continue
+            try:
+                return rp.relative_to(script_dir)
+            except ValueError:
+                logger.warning(f"File outside all known roots during archiving: {py_file}")
+                return Path(rp.name)
 
         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for py_file in sorted(py_files):
-                try:
-                    arcname = py_file.resolve().relative_to(base_path)
-                    zf.write(py_file, arcname)
-                except ValueError:
-                    # File is outside base_path (shouldn't happen, but be safe)
-                    logger.warning(f"Skipping file outside base_path during archiving: {py_file}")
+                zf.write(py_file, _arcname(py_file))
 
     # ------------------------------------------------------------------
-    # Config logging (unchanged)
+    # Config logging
     # ------------------------------------------------------------------
 
     def log_cfgs_to_hydra(self, target_root):
@@ -328,11 +417,14 @@ class LogMaker:
         with open(target_root / "config_sources.txt", "w") as f:
             for provider, config_files in relevant_config_files.items():
                 f.write(f"{provider}\n")
-                f.write(f"Common path: {self._find_common_paths(config_files)}\n")
+                common = self._find_common_paths(config_files) if config_files else "N/A"
+                f.write(f"Common path: {common}\n")
                 for config_file in config_files:
                     f.write(f"    {config_file}\n")
 
         for provider, config_files in relevant_config_files.items():
+            if not config_files:
+                continue
             base_path = self._find_common_paths(config_files)
             base_path = base_path.parent
 
@@ -376,47 +468,128 @@ class LogMaker:
         missing_combinations = []
 
         for choice_key, choice_value in relevant_choices.items():
-            found = False
-            for provider, config_dir in config_paths.items():
-                config_path = config_dir / f"{choice_key}/{choice_value}.yaml"
-                if config_path.exists():
-                    relevant_files[provider].append(config_path)
-                    found = True
-                    break
-            if not found:
+            group = choice_key.split("@", 1)[0]
+            provider, path = self._resolve_across_providers(
+                config_paths, f"{group}/{choice_value}.yaml"
+            )
+            if provider is None:
                 missing_combinations.append((choice_key, choice_value))
+            elif path not in relevant_files[provider]:
+                relevant_files[provider].append(path)
 
         if missing_combinations:
-            logger.warning("Missing configuration files for:", missing_combinations)
+            logger.warning("Missing configuration files for: %s", missing_combinations)
 
-        for provider, config_paths in relevant_files.items():
-            for config_path in config_paths:
-                config_path = Path(config_path)
-                with open(config_path, 'r') as f:
-                    try:
-                        config_data = yaml.safe_load(f)
-                        if config_data is None:
-                            logger.warning(f"Loaded an empty config file: {config_path}")
-                            continue
-                        defaults = config_data.get('defaults', [])
-                        for item in defaults:
-                            if not isinstance(item, str):
-                                continue
-                            if item == '_self_':
-                                continue
-                            possible_path = config_path.parent / item
-                            if not possible_path.suffix:
-                                possible_path = possible_path.with_suffix('.yaml')
-                            if possible_path.exists():
-                                if possible_path not in relevant_files[provider]:
-                                    relevant_files[provider].append(possible_path)
-                                else:
-                                    logger.warning(f"Circular dependency detected for file: {config_path} for line {item}")
-                            else:
-                                logger.warning(f"File referenced in a defaults was not found: {config_path} for line {item}")
-                    except yaml.YAMLError as e:
-                        logger.error(f"Error parsing YAML file {config_path}: {e}")
+        # Walk defaults transitively. A file's bare-string defaults are relative
+        # to the config group directory it sits in, and may resolve under a
+        # different provider than the referencing file (e.g. a local pipeline
+        # config pulling in cmbml's pipe_sim.yaml).
+        worklist = [
+            (provider, path)
+            for provider, paths in relevant_files.items()
+            for path in paths
+        ]
+        seen = set()
+
+        while worklist:
+            provider, config_path = worklist.pop()
+            config_path = Path(config_path)
+            if config_path in seen:
+                continue
+            seen.add(config_path)
+
+            try:
+                with open(config_path, "r") as f:
+                    config_data = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                logger.error(f"Error parsing YAML file {config_path}: {e}")
+                continue
+
+            if config_data is None:
+                logger.warning(f"Loaded an empty config file: {config_path}")
+                continue
+
+            # Group prefix of this file within its own provider root,
+            # e.g. 'pipeline' for cfg/pipeline/assembly_surr_real_ps.yaml
+            try:
+                group_prefix = config_path.resolve().parent.relative_to(
+                    config_paths[provider].resolve()
+                )
+            except ValueError:
+                group_prefix = Path(".")
+
+            for item in config_data.get("defaults", []):
+                if not isinstance(item, str) or item == "_self_":
+                    continue
+
+                rel_path = group_prefix / item
+                if not rel_path.suffix:
+                    rel_path = rel_path.with_suffix(".yaml")
+
+                found_provider, found_path = self._resolve_across_providers(
+                    config_paths, rel_path
+                )
+                if found_provider is None:
+                    logger.warning(
+                        f"File referenced in a defaults was not found: "
+                        f"{config_path} for line {item}"
+                    )
+                    continue
+
+                if found_path not in relevant_files[found_provider]:
+                    relevant_files[found_provider].append(found_path)
+                worklist.append((found_provider, found_path))
+
         return relevant_files
+
+    def log_pipeline(self, pipeline) -> None:
+        """
+        Record the assembled executor plan for this run as pipeline_progress.json.
+        Every stage starts as "pending"; PipelineContext updates status as
+        stages complete. Fully-qualified names disambiguate the ex.py catch-all.
+        """
+        target_root = self.namer.hydra_scripts_path
+        target_root.mkdir(parents=True, exist_ok=True)
+        self._pipeline_log_path = target_root / "pipeline_progress.json"
+        self._pipeline_records = [
+            {
+                "order": i,
+                "name": stage.__name__,
+                "qualified": f"{stage.__module__}.{stage.__qualname__}",
+                "status": "pending",
+            }
+            for i, stage in enumerate(pipeline)
+        ]
+        self._write_pipeline_log()
+
+    def _write_pipeline_log(self) -> None:
+        """(Re)write the pipeline log to disk. Cheap; called after each update."""
+        if getattr(self, "_pipeline_log_path", None) is None:
+            return
+        with self._pipeline_log_path.open("w") as f:
+            json.dump(self._pipeline_records, f, indent=2)
+
+    def mark_stage(self, order: int, status: str) -> None:
+        """Update one stage's status and flush to disk immediately."""
+        if getattr(self, "_pipeline_records", None) is None:
+            return
+        self._pipeline_records[order]["status"] = status
+        self._write_pipeline_log()
+
+    @staticmethod
+    def _resolve_across_providers(config_paths, rel_path):
+        """Find rel_path (e.g. 'pipeline/pipe_sim.yaml') under any provider.
+
+        Returns (provider, path) for the last provider that has it, or
+        (None, None). Last rather than first because Hydra's later config
+        sources override earlier ones.
+        """
+        found = (None, None)
+        for provider, config_dir in config_paths.items():
+            candidate = config_dir / rel_path
+            if candidate.exists():
+                found = (provider, candidate)
+        return found
 
     @staticmethod
     def _find_common_paths(paths):
@@ -444,6 +617,59 @@ class LogMaker:
                 shutil.copytree(item, destination, dirs_exist_ok=True)
             else:
                 shutil.copy2(item, destination)
+
+    def log_git_state(self, source_script, target_root):
+        """
+        Records the git state of each first-party source root as git_state.json.
+
+        Version strings are weak provenance — an installed cmbml==0.1.0 says
+        nothing about which commit it was built from, and a working tree can
+        drift from the installed copy. A commit hash and dirty flag make the
+        run identifiable against the repository.
+        """
+        import subprocess
+
+        roots = self._resolve_whitelist_roots(with_names=True)
+        roots.append((None, Path(source_script).resolve().parent))
+
+        def _git(repo, *args):
+            try:
+                result = subprocess.run(
+                    ["git", "-C", str(repo), *args],
+                    capture_output=True, text=True, timeout=30,
+                )
+            except (OSError, subprocess.TimeoutExpired) as e:
+                logger.warning(f"git command failed: {e}")
+                return None
+            return result.stdout.strip() if result.returncode == 0 else None
+
+        records = []
+        for pkg_name, root in roots:
+            repo = _git(root, "rev-parse", "--show-toplevel")
+            if repo is None:
+                build_info = None
+                if pkg_name is not None:
+                    module = sys.modules.get(pkg_name)
+                    build_info = getattr(module, "BUILD_INFO", None)
+                records.append({
+                    "root": str(root),
+                    "package": pkg_name,
+                    "git": "not a repository",
+                    "build_info": build_info,
+                })
+                continue
+            status = _git(repo, "status", "--porcelain")
+            records.append({
+                "root": str(root),
+                "repo": repo,
+                "head": _git(repo, "rev-parse", "HEAD"),
+                "branch": _git(repo, "rev-parse", "--abbrev-ref", "HEAD"),
+                "dirty": bool(status),
+                "dirty_files": status.splitlines() if status else [],
+            })
+
+        with (Path(target_root) / "git_state.json").open("w") as f:
+            json.dump(records, f, indent=2)
 
 
 class LogsNamer:

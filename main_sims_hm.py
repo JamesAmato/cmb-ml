@@ -28,7 +28,7 @@ from cmbml.sims.ex import (
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(version_base=None, config_name="config_sim_flex")
+@hydra.main(version_base=None, config_name="config_sim")
 def run_simulations(cfg):
     """
     Runs the simulation pipeline.
@@ -52,7 +52,6 @@ def run_simulations(cfg):
     # pipeline_context.add_pipe(DownloadNoiseModelExecutor)
     pipeline_context.add_pipe(HalfMissionNoiseExecutor)
     pipeline_context.add_pipe(SimHMCreatorExecutor)
-
 
     # # TODO: Put this back in the pipeline yaml; fix/make executor
     # # pipeline_context.add_pipe(ShowSimsExecutor)  # Out of date, do not use.
